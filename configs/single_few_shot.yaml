@@ -1,0 +1,14 @@
+defaults:
+  - single
+  - _self_
+
+datamodule:
+  _target_: lfads_torch.datamodules_fewshot.DoubleHeldoutDataModule
+  split_keep_first: true
+
+model:
+  readout:
+    modules:
+      - _target_: lfads_torch.modules.readin_readout.FanInLinear
+        in_features: ${model.fac_dim}
+        out_features: 91 # 182
