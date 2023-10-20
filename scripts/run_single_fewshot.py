@@ -29,6 +29,7 @@ run_model(
     },
     config_path="../configs/single_few_shot.yaml",
     # config_path="../configs/single.yaml",
-    do_train=True,
+    do_train=False,
     do_posterior_sample=False,
+    do_fewshot_protocol=True,
 )

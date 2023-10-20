@@ -2,13 +2,25 @@ defaults:
   - single
   - _self_
 
+new_heldout_units: 23
+# old_heldout_units: ${eval:${model.readout.modules[0].out_features}-${model.encod_data_dim}}
+fewshot_neurons: 22
+
 datamodule:
   _target_: lfads_torch.datamodules_fewshot.DoubleHeldoutDataModule
   split_keep_first: true
+  num_new_heldout_neurons: ${new_heldout_units}
 
 model:
   readout:
     modules:
       - _target_: lfads_torch.modules.readin_readout.FanInLinear
         in_features: ${model.fac_dim}
-        out_features: 91 # 182
+        out_features: ${eval:${model.encod_data_dim} + ${new_heldout_units}}
+
+fewshot_protocol:
+  use_best_ckpt: True
+  fn:
+    _target_: lfads_torch.post_run.fewshot_analysis.run_fewshot_analysis
+    # filename: lfads_fewshot_output.h5
+    # num_samples: 50

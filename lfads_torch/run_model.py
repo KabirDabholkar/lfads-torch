@@ -14,6 +14,7 @@ from ray import tune
 from .utils import flatten
 
 OmegaConf.register_new_resolver("relpath", lambda p: Path(__file__).parent / ".." / p)
+OmegaConf.register_new_resolver("eval", eval)
 
 
 def run_model(
@@ -22,6 +23,7 @@ def run_model(
     config_path: str = "../configs/single.yaml",
     do_train: bool = True,
     do_posterior_sample: bool = True,
+    do_fewshot_protocol: bool = True,
 ):
     """Adds overrides to the default config, instantiates all PyTorch Lightning
     objects from config, and runs the training pipeline.
@@ -92,3 +94,23 @@ def run_model(
         if torch.cuda.is_available():
             model = model.to("cuda")
         call(config.posterior_sampling.fn, model=model, datamodule=datamodule)
+
+    # Run few shot
+    if do_fewshot_protocol:
+        # Temporary workaround for PTL step-resuming bug
+        if checkpoint_dir:
+            ckpt = torch.load(ckpt_path)
+            trainer.fit_loop.epoch_loop._batches_that_stepped = ckpt["global_step"]
+
+        trainer = instantiate(
+            config.trainer,
+            callbacks=[instantiate(c) for c in config.callbacks.values()],
+            logger=[instantiate(lg) for lg in config.logger.values()],
+            gpus=int(torch.cuda.is_available()),
+        )
+        call(
+            config.fewshot_protocol.fn,
+            model=model,
+            datamodule=datamodule,
+            trainer=trainer,
+        )
