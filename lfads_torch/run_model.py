@@ -108,9 +108,20 @@ def run_model(
             logger=[instantiate(lg) for lg in config.logger.values()],
             gpus=int(torch.cuda.is_available()),
         )
+
+        fewshot_head_model = instantiate(
+            config.fewshot_head_model
+        )
+        fewshot_trainer = instantiate(
+            config.fewshot_trainer
+        )
+        # print(type(fewshot_head_model(1,1)))
         call(
             config.fewshot_protocol.fn,
             model=model,
+            fewshot_head_model=fewshot_head_model,
             datamodule=datamodule,
             trainer=trainer,
+            fewshot_trainer=fewshot_trainer,
+            K = [1000]
         )

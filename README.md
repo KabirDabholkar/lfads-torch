@@ -1,3 +1,14 @@
+# A few-shot benchmark for neural latents 
+
+This repository contains code to run `lfads-torch` on the few-shot extension of the co-smoothing metric of the Neural Latent Benchmark.
+
+A summary of new files and modifications:
+1. `scripts/run_single_fewshot.py`: to pre-train a single model, similar to `scripts/run_single.py`, but also evaluate model on training data to obtain latent `factors`, and to train and validate a linear 'head' model on `K` input samples. Uses the config, `config/single_few_shot.yaml` instead of `config/single.yaml`.
+2. `config/single_few_shot.py`: inherits `config/single.yaml`. Uses `lfads_torch.datamodules_fewshot.DoubleHeldoutDataModule` instead of `lfads_torch.datamodules.BasicDataModule`. Additionally contains specifications for `fewshot_head_model` and `fewshot_trainer` and `fewshot_protocol`.
+3. `lfads_torch.datamodules_fewshot.DoubleHeldoutDataModule` data tensor along neurons axis to create a fewshot_heldout neurons in train/validation. 
+
+---
+
 # `lfads-torch`: A modular and extensible implementation of latent factor analysis via dynamical systems
 
 [![arXiv](https://img.shields.io/badge/arXiv-2309.01230-b31b1b.svg)](https://arxiv.org/abs/2309.01230)

@@ -27,7 +27,7 @@ def split_datadict(data_dict, split_keep_first, num_new_heldout_neurons=None):
     for k, v in data_dict.items():
         if "recon_data" in k:
             recon_key = k
-            fewshot_key = k.replace("recon", "few-shot")
+            fewshot_key = k.replace("recon", "fewshot")
             encod_neurons, heldout_neurons = np.split(v, [num_encod_neurons], axis=2)
             order = 1 if split_keep_first else -1
             new_heldout_neurons, fewshot_neurons = np.split(
