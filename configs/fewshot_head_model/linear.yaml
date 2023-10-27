@@ -1,6 +1,6 @@
 _target_: lfads_torch.post_run.fewshot_analysis.LinearLightning
 _partial_: true
-lr_init: 4.0e-3
+lr_init: 1.0e-2
 lr_adam_beta1: 0.9
 lr_adam_beta2: 0.999
 lr_adam_epsilon: 1.0e-8

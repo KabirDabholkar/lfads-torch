@@ -29,13 +29,14 @@ def split_datadict(data_dict, split_keep_first, num_new_heldout_neurons=None):
             recon_key = k
             fewshot_key = k.replace("recon", "fewshot")
             encod_neurons, heldout_neurons = np.split(v, [num_encod_neurons], axis=2)
+            # heldout_neurons = heldout_neurons[...,np.random.permutation(heldout_neurons.shape[-1])]
             order = 1 if split_keep_first else -1
             new_heldout_neurons, fewshot_neurons = np.split(
-                heldout_neurons[::order], [num_new_heldout_neurons], axis=2
+                heldout_neurons[...,::order], [num_new_heldout_neurons], axis=2
             )
             new_heldout_neurons, fewshot_neurons = (
-                new_heldout_neurons[::order],
-                fewshot_neurons[::order],
+                new_heldout_neurons[...,::order],
+                fewshot_neurons[...,::order],
             )
             updates_dict[recon_key] = np.concatenate(
                 [encod_neurons, new_heldout_neurons], axis=2

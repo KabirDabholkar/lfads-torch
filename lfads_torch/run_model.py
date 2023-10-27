@@ -63,10 +63,12 @@ def run_model(
             with open_dict(config):
                 config.logger.wandb_logger.name = tune.get_trial_name()
                 config.logger.wandb_logger.id = tune.get_trial_name()
+        callbacks = [instantiate(c) for c in config.callbacks.values()]
+        print(callbacks)
         # Instantiate the pytorch_lightning `Trainer` and its callbacks and loggers
         trainer = instantiate(
             config.trainer,
-            callbacks=[instantiate(c) for c in config.callbacks.values()],
+            callbacks=callbacks,
             logger=[instantiate(lg) for lg in config.logger.values()],
             gpus=int(torch.cuda.is_available()),
         )

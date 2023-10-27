@@ -21,6 +21,7 @@ datamodule:
     - valid_fewshot_data
 
 model:
+  _target_: lfads_torch.model.StoreOutputsLFADS
   readout:
     modules:
       - _target_: lfads_torch.modules.readin_readout.FanInLinear
@@ -34,10 +35,28 @@ fewshot_protocol:
     # filename: lfads_fewshot_output.h5
     # num_samples: 50
 
+callbacks:
+  fewshot:
+    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
+    fewshot_head_model  : ${fewshot_head_model}
+    fewshot_trainer     : ${fewshot_trainer}
+    K                   : 1000
+    ratio               : 0.3
+    seed                : 0
+    log_every_n_epochs  : 1
+
+trainer:
+  max_epochs: 5
 
 fewshot_trainer:
   _target_: pytorch_lightning.Trainer
 #  gradient_clip_val: 200
-  max_epochs: 1_000
+  max_epochs: 40
   log_every_n_steps: 5
   # track_grad_norm: 2
+  callbacks:
+    - _target_: pytorch_lightning.callbacks.EarlyStopping
+      monitor: fewshot/validation_loss
+      mode: min
+      patience: 10
+      min_delta: 0

@@ -13,7 +13,7 @@ from ..utils import send_batch_to_device, transpose_lists
 
 from ..tuples import SessionBatch, SessionOutput
 from ..utils import transpose_lists
-from ..metrics import bits_per_spike
+from ..metrics import bits_per_spike, regional_bits_per_spike
 
 from torch.utils.data import DataLoader, Dataset, TensorDataset
 from sklearn.model_selection import train_test_split
@@ -36,7 +36,7 @@ class LinearLightning(pl.LightningModule):
             lr_adam_beta1: float,
             lr_adam_beta2: float,
             lr_adam_epsilon: float,
-            weight_decay: float
+            weight_decay: float,
         ):
         super().__init__()
         self.save_hyperparameters()
@@ -64,10 +64,14 @@ class LinearLightning(pl.LightningModule):
         return -bits_per_spike(pred_logrates,target_spike_counts)
 
     def training_step(self, batch, batch_idx):
-        return self._general_step(batch,batch_idx)
+        loss = self._general_step(batch, batch_idx)
+        self.log("fewshot/train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return loss
 
     def validation_step(self, batch, batch_idx):
-        return self._general_step(batch,batch_idx)
+        loss = self._general_step(batch,batch_idx)
+        self.log("fewshot/validation_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return loss
 
 class FewshotLFADS(LFADS):
     def forward(
@@ -91,6 +95,131 @@ class FewshotLFADS(LFADS):
         # factors = torch.split(factors, batch_sizes)
         output_params = [self.readout[s](f) for s, f in zip(sessions, factors)]
         return output_params
+
+
+
+
+class FewshotTrainTest(pl.Callback):
+    """
+    Train and test (on validation set) the Fewshot head model.
+    """
+
+    def __init__(
+            self,
+            fewshot_head_model,
+            fewshot_trainer,
+            K: int,
+            ratio: float = 0.3,
+            seed: int = 0,
+            log_every_n_epochs=20,
+            #decoding_cv_sweep=False,
+        ):
+        """Initializes the callback.
+
+        Parameters
+        ----------
+        log_every_n_epochs : int, optional
+            The frequency with which to plot and log, by default 100
+        decoding_cv_sweep : bool, optional
+            Whether to run a cross-validated hyperparameter sweep to
+            find optimal regularization values, by default False
+        """
+        super().__init__()
+        self.log_every_n_epochs = log_every_n_epochs
+        # self.decoding_cv_sweep = decoding_cv_sweep
+        self.smth_metrics = {}
+
+        self.fewshot_head_model = fewshot_head_model
+        self.fewshot_trainer = fewshot_trainer
+        self.K = K
+        self.ratio = ratio
+        self.seed = seed
+        self.fewshot_dataloaders = None
+
+    def my_setup(self, trainer, pl_module):
+        datamodule = trainer.datamodule
+        model = pl_module
+
+        # datamodule.setup()
+        train_dls = datamodule.train_dataloader()
+        # pred_dls = datamodule.predict_dataloader()
+
+        # Set the model to evaluation mode
+
+        #train_output = [model.predict_step(batch,i) for i,batch in enumerate(train_dls)]
+        train_output = model.model_latents_train
+
+        #train_output = trainer.predict(model=model, dataloaders=train_dls)
+        # train_dls[0][0]
+        num_recon_neurons = list(train_dls)[0][0][0].recon_data.shape[-1]
+
+        train_factors = torch.concat([t[0].factors for t in train_output])[:, :35, :]
+        train_fewshot_neurons = torch.tensor(datamodule.train_fewshot_data)[:, :35, :]
+        # recon_data = torch.concat([l[0][0].recon_data for l in list(train_dls)])
+        # train_fewshot_neurons = torch.concat([train_fewshot_neurons, recon_data[..., :35, :]], axis=-1)  # -23
+
+        train_samples = train_factors.shape[0]
+        k = self.K
+        samples = np.random.choice(train_samples, size=k, replace=False)
+        X = train_factors[samples]  # .reshape(-1,train_factors.shape[-1])
+        Y = train_fewshot_neurons[samples]  # .reshape(-1,train_fewshot_neurons.shape[-1])
+
+        valid_size = int(self.ratio * X.shape[0])
+        arrays = train_test_split(*[X, Y], test_size=valid_size, random_state=self.seed)
+        self.X_train, self.Y_train = [a for i, a in enumerate(arrays) if (i - 1) % 2]
+        self.X_val, self.Y_val = [a for i, a in enumerate(arrays) if i % 2]
+        #print(X_train.shape, Y_train.shape, X_val.shape, Y_val.shape)
+        fewshot_dataloader_train = DataLoader(
+            TensorDataset(self.X_train, self.Y_train),
+            batch_size=100
+        )
+        fewshot_dataloader_val = DataLoader(
+            TensorDataset(self.X_val, self.Y_val),
+            batch_size=100
+        )
+
+        self.fewshot_head_model = self.fewshot_head_model(
+            train_factors.shape[-1],
+            train_fewshot_neurons.shape[-1]
+        )
+
+        self.fewshot_dataloaders = (fewshot_dataloader_train, fewshot_dataloader_val)
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        """Logs best score k shot score at the end of the validation epoch.
+
+        Parameters
+        ----------
+        trainer : pytorch_lightning.Trainer
+            The trainer currently handling the model.
+        pl_module : pytorch_lightning.LightningModule
+            The model currently being trained.
+        """
+        # Skip evaluation for most epochs to save time
+        if (trainer.current_epoch % self.log_every_n_epochs) != 0:
+            return
+
+        if not hasattr(pl_module,'model_latents_train'):
+            print('Module has no attribute "model_latents_train".')
+            return
+
+
+        if self.fewshot_dataloaders is None:
+            self.my_setup(trainer,pl_module)
+
+        fewshot_train, fewshot_val = self.fewshot_dataloaders
+        fewshot_head_model = self.fewshot_head_model
+        print('Training few shot head...')
+        self.fewshot_trainer.fit(
+            model=fewshot_head_model,
+            train_dataloaders = fewshot_train,
+            val_dataloaders = fewshot_val,
+        )
+        print('Done.\nTesting few shot head...')
+        valid_kshot_smoothing = bits_per_spike(fewshot_head_model(self.X_val), self.Y_val)
+
+        pl_module.log_dict({f'valid/{self.K}_shot_cosmoothing':valid_kshot_smoothing})
+
 
 def run_fewshot_analysis(
         model,
@@ -130,20 +259,22 @@ def run_fewshot_analysis(
     # train_dls[0][0]
     num_recon_neurons = list(train_dls)[0][0][0].recon_data.shape[-1]
 
-    train_factors = torch.concat([t[0].factors for t in train_output])
-    train_fewshot_neurons = torch.tensor(datamodule.train_fewshot_data)
+    train_factors = torch.concat([t[0].factors for t in train_output])[:,:35,:]
+    train_fewshot_neurons = torch.tensor(datamodule.train_fewshot_data)[:,:35,:]
+    recon_data = torch.concat([l[0][0].recon_data for l in list(train_dls)])
+    train_fewshot_neurons = torch.concat([train_fewshot_neurons,recon_data[...,:35,:]],axis=-1) #-23
 
     train_samples = train_factors.shape[0]
     for k in K:
         samples = np.random.choice(train_samples, size=k, replace=False)
-        X = train_factors[samples].reshape(-1,train_factors.shape[-1])
-        Y = train_fewshot_neurons[samples].reshape(-1,train_fewshot_neurons.shape[-1])
+        X = train_factors[samples]#.reshape(-1,train_factors.shape[-1])
+        Y = train_fewshot_neurons[samples]#.reshape(-1,train_fewshot_neurons.shape[-1])
 
         valid_size = int(ratio * X.shape[0])
         arrays = train_test_split(*[X,Y], test_size=valid_size, random_state=seed)
         X_train,Y_train = [a for i, a in enumerate(arrays) if (i - 1) % 2]
         X_val,Y_val = [a for i, a in enumerate(arrays) if i % 2]
-
+        print(X_train.shape,Y_train.shape,X_val.shape,Y_val.shape)
         fewshot_dataloader_train = DataLoader(
             TensorDataset(X_train,Y_train),
             batch_size=100
@@ -163,7 +294,18 @@ def run_fewshot_analysis(
             train_dataloaders = fewshot_dataloader_train,
             val_dataloaders = fewshot_dataloader_val,
         )
-
+        output = fewshot_head_model(train_factors[:30])
+        import matplotlib.pyplot as plt
+        fig,axs = plt.subplots(1,2)
+        ax = axs[0]
+        im = ax.imshow(output[2].detach().cpu().T)
+        plt.colorbar(im, ax=ax)
+        ax = axs[1]
+        im = plt.imshow(train_fewshot_neurons[2].detach().cpu().T)
+        plt.colorbar(im, ax=ax)
+        plt.savefig('/Users/kabir/Documents/code/lfads-torch/test_output.png')
+    print(train_fewshot_neurons.mean())
+    bits_per_spike(fewshot_head_model(X_val),Y_val)
     # model = FewshotLFADS()
     # trainer.fit()
 
