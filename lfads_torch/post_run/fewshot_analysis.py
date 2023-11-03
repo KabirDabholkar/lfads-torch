@@ -128,7 +128,7 @@ class FewshotTrainTest(pl.Callback):
         self.smth_metrics = {}
 
         self.fewshot_head_model_partial = fewshot_head_model
-        self.fewshot_trainer = fewshot_trainer
+        self.fewshot_trainer = fewshot_trainer(gpus=int(torch.cuda.is_available()))
         self.K = K
         self.ratio = ratio
         self.seed = seed
