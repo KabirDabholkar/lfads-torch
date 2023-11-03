@@ -8,12 +8,13 @@ from ray.tune.schedulers import FIFOScheduler
 from ray.tune.suggest.basic_variant import BasicVariantGenerator
 
 from lfads_torch.run_model import run_model
+from paths import runs_path
 
 # ---------- OPTIONS -----------
 PROJECT_STR = "lfads-torch-example"
 DATASET_STR = "nlb_mc_maze"
 RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
-RUN_DIR = Path("/snel/share/runs") / PROJECT_STR / DATASET_STR / RUN_TAG
+RUN_DIR = Path(runs_path) / PROJECT_STR / DATASET_STR / RUN_TAG
 # ------------------------------
 
 # Set the mandatory config overrides to select datamodule and model
