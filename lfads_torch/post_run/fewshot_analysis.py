@@ -112,6 +112,7 @@ class FewshotTrainTest(pl.Callback):
             ratio: float = 0.3,
             seed: int = 0,
             log_every_n_epochs=20,
+            fewshot_trainer_epochs: int = 50,
             #decoding_cv_sweep=False,
         ):
         """Initializes the callback.
@@ -120,23 +121,20 @@ class FewshotTrainTest(pl.Callback):
         ----------
         log_every_n_epochs : int, optional
             The frequency with which to plot and log, by default 100
-        decoding_cv_sweep : bool, optional
-            Whether to run a cross-validated hyperparameter sweep to
-            find optimal regularization values, by default False
         """
         super().__init__()
         self.log_every_n_epochs = log_every_n_epochs
         # self.decoding_cv_sweep = decoding_cv_sweep
         self.smth_metrics = {}
 
-        self.fewshot_head_model = fewshot_head_model
+        self.fewshot_head_model_partial = fewshot_head_model
         self.fewshot_trainer = fewshot_trainer
         self.K = K
         self.ratio = ratio
         self.seed = seed
         self.fewshot_dataloaders = None
 
-    def my_setup(self, trainer, pl_module):
+    def my_setup(self, trainer, pl_module, initialise_head: bool = True):
         datamodule = trainer.datamodule
         model = pl_module
 
@@ -177,13 +175,13 @@ class FewshotTrainTest(pl.Callback):
             TensorDataset(self.X_val, self.Y_val),
             batch_size=100
         )
-
-        self.fewshot_head_model = self.fewshot_head_model(
-            train_factors.shape[-1],
-            train_fewshot_neurons.shape[-1]
-        )
-
         self.fewshot_dataloaders = (fewshot_dataloader_train, fewshot_dataloader_val)
+
+        if initialise_head:
+            self.fewshot_head_model = self.fewshot_head_model_partial(
+                train_factors.shape[-1],
+                train_fewshot_neurons.shape[-1]
+            )
 
     def on_validation_epoch_end(self, trainer, pl_module):
         """Logs best score k shot score at the end of the validation epoch.
@@ -203,18 +201,27 @@ class FewshotTrainTest(pl.Callback):
             print('Module has no attribute "model_latents_train".')
             return
 
-
         if self.fewshot_dataloaders is None:
-            self.my_setup(trainer,pl_module)
+            self.my_setup(trainer, pl_module, initialise_head=True)
+        else:
+            self.my_setup(trainer, pl_module, initialise_head=True)
+
+
 
         fewshot_train, fewshot_val = self.fewshot_dataloaders
         fewshot_head_model = self.fewshot_head_model
+
+
+
         print('Training few shot head...')
         self.fewshot_trainer.fit(
             model=fewshot_head_model,
             train_dataloaders = fewshot_train,
             val_dataloaders = fewshot_val,
         )
+
+        self.fewshot_trainer.fit_loop.max_epochs += 40
+
         print('Done.\nTesting few shot head...')
         valid_kshot_smoothing = bits_per_spike(fewshot_head_model(self.X_val), self.Y_val)
 

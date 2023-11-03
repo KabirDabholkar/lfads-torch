@@ -1,3 +1,7 @@
+defaults:
+  - nlb
+  - _self_
+
 raster_plot:
   _target_: lfads_torch.callbacks.RasterPlot
   log_every_n_epochs: 200

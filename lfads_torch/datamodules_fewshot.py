@@ -42,6 +42,9 @@ def split_datadict(data_dict, split_keep_first, num_new_heldout_neurons=None):
                 [encod_neurons, new_heldout_neurons], axis=2
             )
             updates_dict[fewshot_key] = fewshot_neurons
+    if 'psth' in data_dict.keys():
+        num_new_recon_neurons = updates_dict['train_recon_data'].shape[-1] #num_recon_neurons - num_new_heldout_neurons
+        updates_dict['psth'] = data_dict['psth'][...,:num_new_recon_neurons]
     data_dict.update(updates_dict)
 
     # updates_dict = {}

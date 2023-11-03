@@ -46,7 +46,7 @@ callbacks:
     log_every_n_epochs  : 1
 
 trainer:
-  max_epochs: 5
+  max_epochs: 50
 
 fewshot_trainer:
   _target_: pytorch_lightning.Trainer
@@ -54,9 +54,9 @@ fewshot_trainer:
   max_epochs: 40
   log_every_n_steps: 5
   # track_grad_norm: 2
-  callbacks:
-    - _target_: pytorch_lightning.callbacks.EarlyStopping
-      monitor: fewshot/validation_loss
-      mode: min
-      patience: 10
-      min_delta: 0
+#  callbacks:
+#    - _target_: pytorch_lightning.callbacks.EarlyStopping
+#      monitor: fewshot/validation_loss
+#      mode: min
+#      patience: 10
+#      min_delta: 0
