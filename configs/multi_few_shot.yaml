@@ -1,8 +1,6 @@
 defaults:
   - multi
-  - model: nlb_mc_maze
-  - datamodule: nlb_mc_maze
-  - callbacks: default
+  - fewshot_head_model: linear
   - _self_
 
 new_heldout_units: 23
