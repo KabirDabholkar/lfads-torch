@@ -158,6 +158,38 @@ class CoordinatedDropout:
         self.grad_masks = []
 
 
+class CoordinatedDropoutChannelWise(CoordinatedDropout):
+    def process_batch(self, batch):
+        encod_data, *other_data = batch
+        # Only use CD where we are inferring rates (none inferred for IC segment)
+        unmaskable_data = encod_data[:, : self.ic_enc_seq_len, :]
+        maskable_data = encod_data[:, self.ic_enc_seq_len :, :]
+        # Sample a new CD mask at each training step
+        device = encod_data.device
+        cd_mask = self.cd_input_dist.sample(maskable_data.shape).to(device)
+        pass_mask = self.cd_pass_dist.sample(maskable_data.shape).to(device)
+
+        #### Modifications to CoordinatedDropout start ###
+        cd_mask  [:, :, :] = cd_mask  [:, 0:1, :]
+        pass_mask[:, :, :] = pass_mask[:, 0:1, :]
+        #### Modifications to CoordinatedDropout end ####
+
+        # Save the gradient mask for `process_outputs`
+        if self.cd_rate > 0:
+            grad_mask = torch.logical_or(torch.logical_not(cd_mask), pass_mask).float()
+        else:
+            # If cd_rate == 0, turn off CD
+            grad_mask = torch.ones_like(cd_mask)
+        # Store the grad_mask for later
+        self.grad_masks.append(grad_mask)
+        # Mask and scale post-CD input so it has the same sum as the original data
+        cd_masked_data = maskable_data * cd_mask / (1 - self.cd_rate)
+        # Concatenate the data from the IC encoder segment if using
+        cd_input = torch.cat([unmaskable_data, cd_masked_data], axis=1)
+
+        return cd_input, *other_data
+
+
 class CoordinatedDropoutTF2:
     def __init__(self, cd_rate, cd_pass_rate, ic_enc_seq_len):
         self.cd_rate = cd_rate

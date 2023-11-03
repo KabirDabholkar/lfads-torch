@@ -39,6 +39,10 @@ tune.run(
     name=RUN_DIR.name,
     config={
         **mandatory_overrides,
+        "model.train_aug_stack.transforms[0]._target_": tune.choice([
+            'lfads_torch.modules.augmentations.CoordinatedDropout',
+            'lfads_torch.modules.augmentations.CoordinatedDropoutChannelWise',
+        ]),
         "model.dropout_rate": tune.uniform(0.0, 0.6),
         "model.kl_co_scale": tune.loguniform(1e-6, 1e-4),
         "model.kl_ic_scale": tune.loguniform(1e-6, 1e-3),

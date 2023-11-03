@@ -27,6 +27,12 @@ model:
       - _target_: lfads_torch.modules.readin_readout.FanInLinear
         in_features: ${model.fac_dim}
         out_features: ${eval:${model.encod_data_dim} + ${new_heldout_units}}
+  train_aug_stack:
+    transforms:
+      - _target_: lfads_torch.modules.augmentations.CoordinatedDropoutChannelWise
+        cd_rate: 0.3
+        cd_pass_rate: 0.0
+        ic_enc_seq_len: ${model.ic_enc_seq_len}
 
 fewshot_protocol:
   use_best_ckpt: True

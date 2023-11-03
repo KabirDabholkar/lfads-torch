@@ -28,6 +28,7 @@ model:
         in_features: ${model.fac_dim}
         out_features: ${eval:${model.encod_data_dim} + ${new_heldout_units}}
 
+
 callbacks:
   fewshot10:
     _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
