@@ -168,6 +168,9 @@ class FewshotTrainTest(pl.Callback):
         self.X_train, self.Y_train = [a for i, a in enumerate(arrays) if (i - 1) % 2]
         self.X_val, self.Y_val = [a for i, a in enumerate(arrays) if i % 2]
         #print(X_train.shape, Y_train.shape, X_val.shape, Y_val.shape)
+        self.X_train, self.Y_train, self.X_val, self.Y_val = [
+            tensor_.to(pl_module.device) for tensor_ in [self.X_train, self.Y_train, self.X_val, self.Y_val]
+        ]
         fewshot_dataloader_train = DataLoader(
             TensorDataset(self.X_train, self.Y_train),
             batch_size=100
@@ -224,6 +227,7 @@ class FewshotTrainTest(pl.Callback):
         self.fewshot_trainer.fit_loop.max_epochs += self.fewshot_trainer_epochs
 
         print('Done.\nTesting few shot head...')
+        fewshot_head_model = fewshot_head_model.to(self.X_val.device)
         valid_kshot_smoothing = bits_per_spike(fewshot_head_model(self.X_val), self.Y_val)
 
         pl_module.log_dict({f'valid/{self.K}_shot_cosmoothing':valid_kshot_smoothing})
