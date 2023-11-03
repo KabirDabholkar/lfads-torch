@@ -133,6 +133,7 @@ class FewshotTrainTest(pl.Callback):
         self.ratio = ratio
         self.seed = seed
         self.fewshot_dataloaders = None
+        self.fewshot_trainer_epochs = fewshot_trainer_epochs
 
     def my_setup(self, trainer, pl_module, initialise_head: bool = True):
         datamodule = trainer.datamodule
@@ -220,7 +221,7 @@ class FewshotTrainTest(pl.Callback):
             val_dataloaders = fewshot_val,
         )
 
-        self.fewshot_trainer.fit_loop.max_epochs += 40
+        self.fewshot_trainer.fit_loop.max_epochs += self.fewshot_trainer_epochs
 
         print('Done.\nTesting few shot head...')
         valid_kshot_smoothing = bits_per_spike(fewshot_head_model(self.X_val), self.Y_val)
