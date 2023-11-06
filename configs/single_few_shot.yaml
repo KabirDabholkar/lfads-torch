@@ -7,6 +7,8 @@ new_heldout_units: 23
 # old_heldout_units: ${eval:${model.readout.modules[0].out_features}-${model.encod_data_dim}}
 fewshot_neurons: 22
 
+dropout_target : lfads_torch.modules.augmentations.CoordinatedDropoutChannelWise
+
 datamodule:
   _target_: lfads_torch.datamodules_fewshot.DoubleHeldoutDataModule
   split_keep_first: true
@@ -29,7 +31,7 @@ model:
         out_features: ${eval:${model.encod_data_dim} + ${new_heldout_units}}
   train_aug_stack:
     transforms:
-      - _target_: lfads_torch.modules.augmentations.CoordinatedDropoutChannelWise
+      - _target_: ${dropout_target}
         cd_rate: 0.3
         cd_pass_rate: 0.0
         ic_enc_seq_len: ${model.ic_enc_seq_len}

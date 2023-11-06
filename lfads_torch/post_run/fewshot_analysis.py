@@ -156,13 +156,14 @@ class FewshotTrainTest(pl.Callback):
 
         train_factors = torch.concat([t[0].factors for t in train_output]) [:, :35, :].detach()
         train_fewshot_neurons = torch.tensor(datamodule.train_fewshot_data)[:, :35, :].detach()
-
+        self.target_name = "reallyheldout"
 
         if self.use_recon_as_targets:
 
             recon_data = torch.concat([l[0][0].recon_data for l in list(train_dls)])
             # train_fewshot_neurons = torch.concat([train_fewshot_neurons, recon_data[..., :35, :]], axis=-1)  # -23
             train_fewshot_neurons = recon_data[..., :35, :].detach()
+            self.target_name = "recon"
 
         train_samples = train_factors.shape[0]
         k = self.K
@@ -237,7 +238,8 @@ class FewshotTrainTest(pl.Callback):
         fewshot_head_model = fewshot_head_model.to(self.X_val.device)
         valid_kshot_smoothing = bits_per_spike(fewshot_head_model(self.X_val), self.Y_val)
 
-        pl_module.log_dict({f'valid/{self.K}_shot_cosmoothing':valid_kshot_smoothing})
+
+        pl_module.log_dict({f'valid/{self.K}shot_co_bps_{self.target_name}':valid_kshot_smoothing})
 
 
 def run_fewshot_analysis(
