@@ -8,6 +8,7 @@ new_heldout_units: 23
 fewshot_neurons: 22
 
 dropout_target : lfads_torch.modules.augmentations.CoordinatedDropoutChannelWise
+cd_rate : 0.3
 
 datamodule:
   _target_: lfads_torch.datamodules_fewshot.DoubleHeldoutDataModule
@@ -32,6 +33,9 @@ model:
   train_aug_stack:
     transforms:
       - _target_: ${dropout_target}
+        cd_rate: ${cd_rate}
+        cd_pass_rate: 0.0
+        ic_enc_seq_len: ${model.ic_enc_seq_len}
 
 
 
