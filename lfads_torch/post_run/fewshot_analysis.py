@@ -113,6 +113,7 @@ class FewshotTrainTest(pl.Callback):
             seed: int = 0,
             log_every_n_epochs=20,
             fewshot_trainer_epochs: int = 50,
+            use_recon_as_targets: bool = False,
             #decoding_cv_sweep=False,
         ):
         """Initializes the callback.
@@ -134,6 +135,7 @@ class FewshotTrainTest(pl.Callback):
         self.seed = seed
         self.fewshot_dataloaders = None
         self.fewshot_trainer_epochs = fewshot_trainer_epochs
+        self.use_recon_as_targets = use_recon_as_targets
 
     def my_setup(self, trainer, pl_module, initialise_head: bool = True):
         datamodule = trainer.datamodule
@@ -152,10 +154,13 @@ class FewshotTrainTest(pl.Callback):
         # train_dls[0][0]
         num_recon_neurons = list(train_dls)[0][0][0].recon_data.shape[-1]
 
-        train_factors = torch.concat([t[0].factors for t in train_output])[:, :35, :]
+        train_factors = torch.concat([t[0].factors for t in train_output]) [:, :35, :]
         train_fewshot_neurons = torch.tensor(datamodule.train_fewshot_data)[:, :35, :]
-        # recon_data = torch.concat([l[0][0].recon_data for l in list(train_dls)])
-        # train_fewshot_neurons = torch.concat([train_fewshot_neurons, recon_data[..., :35, :]], axis=-1)  # -23
+
+        if self.use_recon_as_targets:
+            recon_data = torch.concat([l[0][0].recon_data for l in list(train_dls)])
+            # train_fewshot_neurons = torch.concat([train_fewshot_neurons, recon_data[..., :35, :]], axis=-1)  # -23
+            train_fewshot_neurons = recon_data[..., :35, :]
 
         train_samples = train_factors.shape[0]
         k = self.K
@@ -167,7 +172,7 @@ class FewshotTrainTest(pl.Callback):
         arrays = train_test_split(*[X, Y], test_size=valid_size, random_state=self.seed)
         self.X_train, self.Y_train = [a for i, a in enumerate(arrays) if (i - 1) % 2]
         self.X_val, self.Y_val = [a for i, a in enumerate(arrays) if i % 2]
-        #print(X_train.shape, Y_train.shape, X_val.shape, Y_val.shape)
+        print('shapes', self.X_train.shape, self.Y_train.shape, self.X_val.shape, self.Y_val.shape)
         self.X_train, self.Y_train, self.X_val, self.Y_val = [
             tensor_.to(pl_module.device) for tensor_ in [self.X_train, self.Y_train, self.X_val, self.Y_val]
         ]

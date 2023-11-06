@@ -11,7 +11,7 @@ from lfads_torch.run_model import run_model
 from paths import runs_path
 
 # ---------- OPTIONS -----------
-PROJECT_STR = "lfads-torch-example"
+PROJECT_STR = "lfads-torch-fewshot-benchmark"
 DATASET_STR = "nlb_mc_maze"
 RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
 RUN_DIR = Path(runs_path) / PROJECT_STR / DATASET_STR / RUN_TAG
