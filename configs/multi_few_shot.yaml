@@ -52,15 +52,15 @@ callbacks:
 #    log_every_n_epochs  : 5
 #    fewshot_trainer_epochs: 50
 
-  fewshot1000_reallyheldout:
-    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
-    fewshot_head_model  : ${fewshot_head_model}
-    fewshot_trainer     : ${fewshot_trainer}
-    K                   : 1000
-    ratio               : 0.3
-    seed                : 0
-    log_every_n_epochs  : 5
-    fewshot_trainer_epochs: 50
+#  fewshot1000_reallyheldout:
+#    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
+#    fewshot_head_model  : ${fewshot_head_model}
+#    fewshot_trainer     : ${fewshot_trainer}
+#    K                   : 1000
+#    ratio               : 0.3
+#    seed                : 0
+#    log_every_n_epochs  : 5
+#    fewshot_trainer_epochs: 50
 
   fewshot1000_recon:
     _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest

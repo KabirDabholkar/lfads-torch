@@ -154,13 +154,15 @@ class FewshotTrainTest(pl.Callback):
         # train_dls[0][0]
         num_recon_neurons = list(train_dls)[0][0][0].recon_data.shape[-1]
 
-        train_factors = torch.concat([t[0].factors for t in train_output]) [:, :35, :]
-        train_fewshot_neurons = torch.tensor(datamodule.train_fewshot_data)[:, :35, :]
+        train_factors = torch.concat([t[0].factors for t in train_output]) [:, :35, :].detach()
+        train_fewshot_neurons = torch.tensor(datamodule.train_fewshot_data)[:, :35, :].detach()
+
 
         if self.use_recon_as_targets:
+
             recon_data = torch.concat([l[0][0].recon_data for l in list(train_dls)])
             # train_fewshot_neurons = torch.concat([train_fewshot_neurons, recon_data[..., :35, :]], axis=-1)  # -23
-            train_fewshot_neurons = recon_data[..., :35, :]
+            train_fewshot_neurons = recon_data[..., :35, :].detach()
 
         train_samples = train_factors.shape[0]
         k = self.K
