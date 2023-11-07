@@ -1,0 +1,3 @@
+_target_: sklearn.multioutput.MultiOutputRegressor
+estimator:
+  _target_: sklearn.linear_model.PoissonRegressor

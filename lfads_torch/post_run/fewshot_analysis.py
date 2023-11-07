@@ -5,6 +5,7 @@ from pathlib import Path
 import h5py
 import torch
 import numpy as np
+from functools import partial
 
 from tqdm import tqdm
 
@@ -99,6 +100,14 @@ class FewshotLFADS(LFADS):
 
 
 
+def initialise_partial(partial_model,input_shape,output_shape):
+    return partial_model(
+        input_shape,
+        output_shape
+    )
+def initialise_partial_many(partial_model_single,input_shape,output_shape):
+    return [partial_model_single() for _ in range(output_shape)]
+
 class FewshotTrainTest(pl.Callback):
     """
     Train and test (on validation set) the Fewshot head model.
@@ -179,21 +188,38 @@ class FewshotTrainTest(pl.Callback):
         self.X_train, self.Y_train, self.X_val, self.Y_val = [
             tensor_.to(pl_module.device) for tensor_ in [self.X_train, self.Y_train, self.X_val, self.Y_val]
         ]
-        fewshot_dataloader_train = DataLoader(
-            TensorDataset(self.X_train, self.Y_train),
-            batch_size=100
-        )
-        fewshot_dataloader_val = DataLoader(
-            TensorDataset(self.X_val, self.Y_val),
-            batch_size=100
-        )
-        self.fewshot_dataloaders = (fewshot_dataloader_train, fewshot_dataloader_val)
 
         if initialise_head:
-            self.fewshot_head_model = self.fewshot_head_model_partial(
-                train_factors.shape[-1],
-                train_fewshot_neurons.shape[-1]
+            self.fewshot_head_model = self.fewshot_head_model_partial
+            if isinstance(self.fewshot_head_model, partial):
+                self.fewshot_head_model = self.fewshot_head_model(
+                    train_factors.shape[-1],
+                    train_fewshot_neurons.shape[-1]
+                )
+
+        if isinstance(self.fewshot_head_model,pl.LightningModule):
+            fewshot_dataloader_train = DataLoader(
+                TensorDataset(self.X_train, self.Y_train),
+                batch_size=100
             )
+            fewshot_dataloader_val = DataLoader(
+                TensorDataset(self.X_val, self.Y_val),
+                batch_size=100
+            )
+            self.fewshot_dataloaders = (fewshot_dataloader_train, fewshot_dataloader_val)
+        else:
+            self.X_train, self.Y_train, self.X_val, self.Y_val = [
+                tensor_.to(pl_module.device) for tensor_ in [self.X_train, self.Y_train, self.X_val, self.Y_val]
+            ]
+            # self.X_train, self.Y_train, self.X_val, self.Y_val = [
+            #     tensor_.to(
+            #         pl_module.device
+            #     ).reshape(
+            #         -1,tensor_.shape[-1]
+            #     ).detach().cpu().numpy() for tensor_ in [self.X_train, self.Y_train, self.X_val, self.Y_val]
+            # ]
+            self.fewshot_dataloaders = ((self.X_train,self.Y_train),(self.X_val,self.Y_val))
+
 
     def on_validation_epoch_end(self, trainer, pl_module):
         """Logs best score k shot score at the end of the validation epoch.
@@ -213,33 +239,45 @@ class FewshotTrainTest(pl.Callback):
             print('Module has no attribute "model_latents_train".')
             return
 
-        if self.fewshot_dataloaders is None:
-            self.my_setup(trainer, pl_module, initialise_head=True)
-        else:
-            self.my_setup(trainer, pl_module, initialise_head=True)
-
-
+        # if self.fewshot_dataloaders is None:
+        #     self.my_setup(trainer, pl_module, initialise_head=True)
+        # else:
+        self.my_setup(trainer, pl_module, initialise_head=True)
 
         fewshot_train, fewshot_val = self.fewshot_dataloaders
         fewshot_head_model = self.fewshot_head_model
 
-
-
         print('Training few shot head...')
-        self.fewshot_trainer.fit(
-            model=fewshot_head_model,
-            train_dataloaders = fewshot_train,
-            val_dataloaders = fewshot_val,
-        )
 
-        self.fewshot_trainer.fit_loop.max_epochs += self.fewshot_trainer_epochs
+        if isinstance(fewshot_head_model,pl.LightningModule):
+            # fewshot_head_model.fit = lambda train,val: self.fewshot_trainer(
+            #     model=fewshot_head_model,
+            #     train_dataloaders=fewshot_train,
+            #     val_dataloaders=fewshot_val,
+            # )
+            self.fewshot_trainer.fit(
+                model=fewshot_head_model,
+                train_dataloaders = fewshot_train,
+                val_dataloaders = fewshot_val,
+            )
+            self.fewshot_trainer.fit_loop.max_epochs += self.fewshot_trainer_epochs
+        else: # fewshot_head_model is sklearn model
+            fewshot_train = (f.reshape(-1,f.shape[-1]) for f in fewshot_train)
+            fewshot_head_model.fit(*fewshot_train)
 
         print('Done.\nTesting few shot head...')
-        fewshot_head_model = fewshot_head_model.to(self.X_val.device)
-        valid_kshot_smoothing = bits_per_spike(fewshot_head_model(self.X_val), self.Y_val)
 
+        if isinstance(fewshot_head_model,pl.LightningModule):
+            fewshot_head_model = fewshot_head_model.to(self.X_val.device)
+            pred = fewshot_head_model(self.X_val)
+        else:
+            X_val, Y_val = fewshot_val
+            pred = fewshot_head_model.predict(X_val.reshape(-1,X_val.shape[-1]))
+            pred = torch.tensor(pred.reshape(Y_val.shape),device=Y_val.device)
 
-        pl_module.log_dict({f'valid/{self.K}shot_co_bps_{self.target_name}':valid_kshot_smoothing})
+        valid_kshot_smoothing = bits_per_spike(pred, self.Y_val)
+        head_module_name = self.fewshot_head_model.__class__ #.__module__  #.split('.')[0]
+        pl_module.log_dict({f'valid/{self.K}shot_{head_module_name}_co_bps_{self.target_name}':valid_kshot_smoothing})
 
 
 def run_fewshot_analysis(
