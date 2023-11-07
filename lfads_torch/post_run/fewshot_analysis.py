@@ -262,7 +262,7 @@ class FewshotTrainTest(pl.Callback):
             )
             self.fewshot_trainer.fit_loop.max_epochs += self.fewshot_trainer_epochs
         else: # fewshot_head_model is sklearn model
-            fewshot_train = (f.reshape(-1,f.shape[-1]) for f in fewshot_train)
+            fewshot_train = (f.reshape(-1,f.shape[-1]).detach().cpu().numpy() for f in fewshot_train)
             fewshot_head_model.fit(*fewshot_train)
 
         print('Done.\nTesting few shot head...')
@@ -272,7 +272,7 @@ class FewshotTrainTest(pl.Callback):
             pred = fewshot_head_model(self.X_val)
         else:
             X_val, Y_val = fewshot_val
-            pred = fewshot_head_model.predict(X_val.reshape(-1,X_val.shape[-1]))
+            pred = fewshot_head_model.predict(X_val.reshape(-1,X_val.shape[-1]).detach().cpu().numpy())
             pred = torch.tensor(pred.reshape(Y_val.shape),device=Y_val.device)
 
         valid_kshot_smoothing = bits_per_spike(pred, self.Y_val)
