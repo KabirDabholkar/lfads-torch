@@ -274,6 +274,7 @@ class FewshotTrainTest(pl.Callback):
             X_val, Y_val = fewshot_val
             pred = fewshot_head_model.predict(X_val.reshape(-1,X_val.shape[-1]).detach().cpu().numpy())
             pred = torch.tensor(pred.reshape(Y_val.shape),device=Y_val.device)
+            pred = torch.log(pred)
 
         valid_kshot_smoothing = bits_per_spike(pred, self.Y_val)
         head_module_name = self.fewshot_head_model.__class__ #.__module__  #.split('.')[0]
