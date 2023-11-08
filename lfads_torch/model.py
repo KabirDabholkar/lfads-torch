@@ -364,9 +364,11 @@ class LFADS(pl.LightningModule):
 
 class StoreOutputsLFADS(LFADS):
     def on_train_epoch_start(self) -> None:
-        self.model_latents_train = []
+        self.model_outputs_train = []
+        self.batches_train = []
     def on_validation_epoch_start(self) -> None:
-        self.model_latents_valid = []
+        self.model_outputs_valid = []
+        self.batches_valid = []
 
     def _shared_step(self, batch, batch_idx, split):
         hps = self.hparams
@@ -376,6 +378,13 @@ class StoreOutputsLFADS(LFADS):
         sessions = sorted(batch.keys())
         # Discard the extra data - only the SessionBatches are relevant here
         batch = {s: b[0] for s, b in batch.items()}
+
+        ####### Modifications start #########
+        batches = getattr(self,'batches_'+split)
+        batches += [batch]
+        setattr(self,'batches_'+split,batches)
+        ####### Modifications end #########
+
         # Process the batch for each session (in order so aug stack can keep track)
         aug_stack = self.train_aug_stack if split == "train" else self.infer_aug_stack
         batch = {s: aug_stack.process_batch(batch[s]) for s in sessions}
@@ -383,9 +392,11 @@ class StoreOutputsLFADS(LFADS):
         output = self.forward(
             batch, sample_posteriors=hps.variational, output_means=False
         )
-        model_latents = getattr(self,'model_latents_'+split)
-        model_latents += [output]
-        setattr(self,'model_latents_'+split,model_latents)
+        ####### Modifications start #########
+        model_outputs = getattr(self,'model_outputs_'+split)
+        model_outputs += [output]
+        setattr(self,'model_outputs_'+split,model_outputs)
+        ####### Modifications end #########
 
         # Compute the reconstruction loss
         recon_all = [

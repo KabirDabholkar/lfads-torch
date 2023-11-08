@@ -165,7 +165,7 @@ class BasicDataModule(pl.LightningDataModule):
         for attr_key in hps.attr_keys:
             setattr(self, attr_key, data_dict[attr_key])
 
-    def train_dataloader(self, shuffle=True):
+    def train_dataloader(self, shuffle=False):
         # PTL provides all batches at once, so divide amongst dataloaders
         batch_size = int(self.hparams.batch_size / len(self.train_ds))
         dataloaders = {

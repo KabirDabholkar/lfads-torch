@@ -151,25 +151,28 @@ class FewshotTrainTest(pl.Callback):
         model = pl_module
 
         # datamodule.setup()
-        train_dls = datamodule.train_dataloader()
+        train_dls = datamodule.train_dataloader(shuffle=True)
         # pred_dls = datamodule.predict_dataloader()
 
         # Set the model to evaluation mode
 
         #train_output = [model.predict_step(batch,i) for i,batch in enumerate(train_dls)]
-        train_output = model.model_latents_train
+        batches_train = model.batches_train
+        outputs_train = model.model_outputs_train
+
+        # train_output = trainer.predict(model=model,dataloaders = train_dls)
 
         #train_output = trainer.predict(model=model, dataloaders=train_dls)
         # train_dls[0][0]
-        num_recon_neurons = list(train_dls)[0][0][0].recon_data.shape[-1]
+        # num_recon_neurons = list(train_dls)[0][0][0].recon_data.shape[-1]
 
-        train_factors = torch.concat([t[0].factors for t in train_output]) [:, :35, :].detach()
+        train_factors = torch.concat([t[0].factors for t in outputs_train]) [:, :35, :].detach()
         train_fewshot_neurons = torch.tensor(datamodule.train_fewshot_data)[:, :35, :].detach()
         self.target_name = "reallyheldout"
 
         if self.use_recon_as_targets:
 
-            recon_data = torch.concat([l[0][0].recon_data for l in list(train_dls)])
+            recon_data = torch.concat([l[0][0].recon_data for l in list(batches_train)])
             # train_fewshot_neurons = torch.concat([train_fewshot_neurons, recon_data[..., :35, :]], axis=-1)  # -23
             train_fewshot_neurons = recon_data[..., :35, :].detach()
             self.target_name = "recon"
@@ -246,7 +249,7 @@ class FewshotTrainTest(pl.Callback):
         if (trainer.current_epoch % self.log_every_n_epochs) != 0:
             return
 
-        if not hasattr(pl_module,'model_latents_train'):
+        if not hasattr(pl_module,'model_outputs_train'):
             print('Module has no attribute "model_latents_train".')
             return
 
