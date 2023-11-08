@@ -172,7 +172,7 @@ class FewshotTrainTest(pl.Callback):
 
         if self.use_recon_as_targets:
 
-            recon_data = torch.concat([l[0][0].recon_data for l in list(batches_train)])
+            recon_data = torch.concat([l[0].recon_data for l in list(batches_train)])
             # train_fewshot_neurons = torch.concat([train_fewshot_neurons, recon_data[..., :35, :]], axis=-1)  # -23
             train_fewshot_neurons = recon_data[..., :35, :].detach()
             self.target_name = "recon"
