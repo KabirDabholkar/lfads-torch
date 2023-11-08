@@ -46,56 +46,36 @@ fewshot_protocol:
     # num_samples: 50
 
 callbacks:
-#  fewshot10:
+#  fewshot1000_reallyheldout_sklearn:
 #    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
-#    fewshot_head_model  : ${fewshot_head_model}
+#    fewshot_head_model  : ${fewshot_head_model_sklearn}
 #    fewshot_trainer     : ${fewshot_trainer}
-#    K                   : 10
+#    K                   : 1000
 #    ratio               : 0.3
 #    seed                : 0
 #    log_every_n_epochs  : 5
 #    fewshot_trainer_epochs: 50
 #
-#  fewshot100:
+#  fewshot1000_recon_sklearn:
 #    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
-#    fewshot_head_model  : ${fewshot_head_model}
+#    fewshot_head_model  : ${fewshot_head_model_sklearn}
 #    fewshot_trainer     : ${fewshot_trainer}
-#    K                   : 100
+#    K                   : 1000
 #    ratio               : 0.3
 #    seed                : 0
 #    log_every_n_epochs  : 5
 #    fewshot_trainer_epochs: 50
-
-  fewshot1000_reallyheldout_sklearn:
-    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
-    fewshot_head_model  : ${fewshot_head_model_sklearn}
-    fewshot_trainer     : ${fewshot_trainer}
-    K                   : 1000
-    ratio               : 0.3
-    seed                : 0
-    log_every_n_epochs  : 5
-    fewshot_trainer_epochs: 50
-
-  fewshot1000_recon_sklearn:
-    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
-    fewshot_head_model  : ${fewshot_head_model_sklearn}
-    fewshot_trainer     : ${fewshot_trainer}
-    K                   : 1000
-    ratio               : 0.3
-    seed                : 0
-    log_every_n_epochs  : 5
-    fewshot_trainer_epochs: 50
-    use_recon_as_targets: true
-
-  fewshot1000_reallyheldout:
-    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
-    fewshot_head_model  : ${fewshot_head_model_lightning}
-    fewshot_trainer     : ${fewshot_trainer}
-    K                   : 1000
-    ratio               : 0.3
-    seed                : 0
-    log_every_n_epochs  : 5
-    fewshot_trainer_epochs: 50
+#    use_recon_as_targets: true
+#
+#  fewshot1000_reallyheldout:
+#    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
+#    fewshot_head_model  : ${fewshot_head_model_lightning}
+#    fewshot_trainer     : ${fewshot_trainer}
+#    K                   : 1000
+#    ratio               : 0.3
+#    seed                : 0
+#    log_every_n_epochs  : 5
+#    fewshot_trainer_epochs: 50
 #
   fewshot1000_recon:
     _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest

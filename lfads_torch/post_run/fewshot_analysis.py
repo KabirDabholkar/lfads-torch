@@ -220,6 +220,17 @@ class FewshotTrainTest(pl.Callback):
             # ]
             self.fewshot_dataloaders = ((self.X_train,self.Y_train),(self.X_val,self.Y_val))
 
+        if self.target_name == 'recon':
+            y_pred = pl_module.readout[0](self.X_train)
+            co_bps_train = bits_per_spike(y_pred,self.Y_train)
+
+            pl_module.log_dict({f'debugging/train_{self.K}shot_co_bps_{self.target_name}_truereadout': co_bps_train})
+
+            y_pred = pl_module.readout[0](self.X_val)
+            co_bps_val = bits_per_spike(y_pred,self.Y_val)
+
+            pl_module.log_dict(
+                {f'debugging/val_{self.K}shot_co_bps_{self.target_name}_truereadout': co_bps_val})
 
     def on_validation_epoch_end(self, trainer, pl_module):
         """Logs best score k shot score at the end of the validation epoch.
