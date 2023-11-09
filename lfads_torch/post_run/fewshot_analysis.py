@@ -150,32 +150,23 @@ class FewshotTrainTest(pl.Callback):
         datamodule = trainer.datamodule
         model = pl_module
 
-        # datamodule.setup()
-        train_dls = datamodule.train_dataloader(shuffle=True)
-        # pred_dls = datamodule.predict_dataloader()
+        (input_data_sample, recon_data_sample, *_), _ = datamodule.valid_data[0]
 
-        # Set the model to evaluation mode
-
-        #train_output = [model.predict_step(batch,i) for i,batch in enumerate(train_dls)]
         batches_train = model.batches_train
         outputs_train = model.model_outputs_train
 
-        # train_output = trainer.predict(model=model,dataloaders = train_dls)
+        _, self.n_obs, self.n_heldin = input_data_sample.shape
 
-        #train_output = trainer.predict(model=model, dataloaders=train_dls)
-        # train_dls[0][0]
-        # num_recon_neurons = list(train_dls)[0][0][0].recon_data.shape[-1]
-
-        train_factors = torch.concat([t[0].factors for t in outputs_train]) [:, :35, :].detach()
+        train_factors = torch.concat([t[0].factors for t in outputs_train]) [:, :self.n_obs, :].detach()
         # train_fewshot_neurons = torch.tensor(batches_train)[:, :35, :].detach()
-        train_fewshot_neurons = torch.concat([l[0][1][1] for l in list(batches_train)])[:,:35,:].detach()
+        train_fewshot_neurons = torch.concat([l[0][1][1] for l in list(batches_train)])[:,:self.n_obs,:].detach()
         self.target_name = "reallyheldout"
 
         if self.use_recon_as_targets:
 
             recon_data = torch.concat([l[0][0].recon_data for l in list(batches_train)])
             # train_fewshot_neurons = torch.concat([train_fewshot_neurons, recon_data[..., :35, :]], axis=-1)  # -23
-            train_fewshot_neurons = recon_data[..., :35, :].detach()
+            train_fewshot_neurons = recon_data[..., :self.n_obs, :].detach()
             self.target_name = "recon"
 
         train_samples = train_factors.shape[0]
@@ -228,13 +219,16 @@ class FewshotTrainTest(pl.Callback):
             y_pred = pl_module.readout[0](self.X_train)
             co_bps_train = bits_per_spike(y_pred,self.Y_train)
 
-            pl_module.log_dict({f'debugging/train_{self.K}shot_co_bps_{self.target_name}_truereadout': co_bps_train})
+            pl_module.log_dict(
+                {f'debugging/train_{self.K}shot_co_bps_{self.target_name}_truereadout': co_bps_train}
+            )
 
             y_pred = pl_module.readout[0](self.X_val)
             co_bps_val = bits_per_spike(y_pred,self.Y_val)
 
             pl_module.log_dict(
-                {f'debugging/val_{self.K}shot_co_bps_{self.target_name}_truereadout': co_bps_val})
+                {f'debugging/val_{self.K}shot_co_bps_{self.target_name}_truereadout': co_bps_val}
+            )
 
     def on_validation_epoch_end(self, trainer, pl_module):
         """Logs best score k shot score at the end of the validation epoch.
@@ -291,10 +285,16 @@ class FewshotTrainTest(pl.Callback):
             pred = torch.tensor(pred.reshape(Y_val.shape),device=Y_val.device)
             pred = torch.log(pred)
 
+        ### bps evaluated all recon neurons
         valid_kshot_smoothing = bits_per_spike(pred, self.Y_val)
-        head_module_name = self.fewshot_head_model.__class__ #.__module__  #.split('.')[0]
-        pl_module.log_dict({f'valid/{self.K}shot_{head_module_name}_co_bps_{self.target_name}':valid_kshot_smoothing})
+        head_module_name = '.'.join([self.fewshot_head_model.__class__.__module__,self.fewshot_head_model.__class__.__name__])
+        pl_module.log_dict({f'valid/{self.K}shot_{head_module_name}_recon_bps_{self.target_name}':valid_kshot_smoothing})
 
+        ### bps evaluated on the heldout subset of recon neurons
+        valid_kshot_smoothing = bits_per_spike(pred[:,:,self.n_heldin:], self.Y_val[:,:,self.n_heldin:])
+        #head_module_name = self.fewshot_head_model.__class__ #.__module__  #.split('.')[0]
+        head_module_name = '.'.join([self.fewshot_head_model.__class__.__module__,self.fewshot_head_model.__class__.__name__])
+        pl_module.log_dict({f'valid/{self.K}shot_{head_module_name}_co_bps_{self.target_name}':valid_kshot_smoothing})
 
 def run_fewshot_analysis(
         model,
