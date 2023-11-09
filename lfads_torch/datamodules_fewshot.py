@@ -7,10 +7,94 @@ from lfads_torch.datamodules import (
     BasicDataModule,
     attach_tensors,
     reshuffle_train_valid,
+    MANDATORY_KEYS,
+    to_tensor,
+    SessionBatch,
+    SessionDataset
 )
 
 # import pytorch_lightning as pl
-# import torch
+import torch
+
+MANDATORY_KEYS = {
+    "train": ["encod_data", "recon_data","fewshot_data"],
+    "valid": ["encod_data", "recon_data","fewshot_data"],
+    "test": ["encod_data"],
+}
+
+##### overwriting attach tensors to include fewshot neurons #####
+def attach_tensors(datamodule, data_dicts: list[dict], extra_keys: list[str] = []):
+    hps = datamodule.hparams
+    sv_gen = torch.Generator().manual_seed(hps.sv_seed)
+    all_train_data, all_valid_data, all_test_data = [], [], []
+    for data_dict in data_dicts:
+
+        def create_session_batch(prefix, extra_keys=[]):
+            # Ensure that the data dict has all of the required keys
+            assert all(f"{prefix}_{key}" in data_dict for key in MANDATORY_KEYS[prefix])
+            # Load the encod_data
+            encod_data = to_tensor(data_dict[f"{prefix}_encod_data"])
+            n_samps, n_steps, _ = encod_data.shape
+            # Load the recon_data
+            if f"{prefix}_recon_data" in data_dict:
+                recon_data = to_tensor(data_dict[f"{prefix}_recon_data"])
+            else:
+                recon_data = torch.zeros(n_samps, 0, 0)
+            if f"{prefix}_fewshot_data" in data_dict:
+                fewshot_data = to_tensor(data_dict[f"{prefix}_fewshot_data"])
+            else:
+                fewshot_data = torch.zeros(n_samps, 0, 0)
+            if hps.sv_rate > 0:
+                # Create sample validation mask # TODO: Sparse and use complement?
+                bern_p = 1 - hps.sv_rate if prefix != "test" else 1.0
+                sv_mask = (
+                    torch.rand(encod_data.shape, generator=sv_gen) < bern_p
+                ).float()
+            else:
+                # Create a placeholder tensor
+                sv_mask = torch.ones(n_samps, 0, 0)
+            # Load or simulate external inputs
+            if f"{prefix}_ext_input" in data_dict:
+                ext_input = to_tensor(data_dict[f"{prefix}_ext_input"])
+            else:
+                ext_input = torch.zeros(n_samps, n_steps, 0)
+            if f"{prefix}_truth" in data_dict:
+                # Load or simulate ground truth TODO: use None instead of NaN?
+                cf = data_dict["conversion_factor"]
+                truth = to_tensor(data_dict[f"{prefix}_truth"]) / cf
+            else:
+                truth = torch.full((n_samps, 0, 0), float("nan"))
+            # Remove unnecessary data during IC encoder segment
+            sv_mask = sv_mask[:, hps.dm_ic_enc_seq_len :]
+            ext_input = ext_input[:, hps.dm_ic_enc_seq_len :]
+            truth = truth[:, hps.dm_ic_enc_seq_len :, :]
+            # Extract data for any extra keys
+            other = [to_tensor(data_dict[f"{prefix}_{k}"]) for k in extra_keys]
+            return (
+                SessionBatch(
+                    encod_data=encod_data,
+                    recon_data=recon_data,
+                    ext_input=ext_input,
+                    truth=truth,
+                    sv_mask=sv_mask,
+                ),
+                tuple(other),
+            )
+        print('extra_keys',extra_keys)
+        # Store the data for each session
+        all_train_data.append(create_session_batch("train", extra_keys))
+        all_valid_data.append(create_session_batch("valid", extra_keys))
+        if "test_encod_data" in data_dict:
+            all_test_data.append(create_session_batch("test"))
+    # Store the datasets on the datamodule
+    datamodule.train_data = all_train_data
+    datamodule.train_ds = [SessionDataset(*train_data) for train_data in all_train_data]
+    datamodule.valid_data = all_valid_data
+    datamodule.valid_ds = [SessionDataset(*valid_data) for valid_data in all_valid_data]
+    if len(all_test_data) == len(all_train_data):
+        datamodule.test_data = all_test_data
+        datamodule.test_ds = [SessionDataset(*test_data) for test_data in all_test_data]
+
 
 
 def split_datadict(data_dict, split_keep_first, num_new_heldout_neurons=None):
@@ -112,6 +196,7 @@ class DoubleHeldoutDataModule(BasicDataModule):
             )
 
             data_dicts.append(data_dict)
+        print('hps:',hps)
         # Attach data to the datamodule
         attach_tensors(self, data_dicts, extra_keys=hps.batch_keys)
         for attr_key in hps.attr_keys:

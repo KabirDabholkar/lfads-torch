@@ -167,12 +167,13 @@ class FewshotTrainTest(pl.Callback):
         # num_recon_neurons = list(train_dls)[0][0][0].recon_data.shape[-1]
 
         train_factors = torch.concat([t[0].factors for t in outputs_train]) [:, :35, :].detach()
-        train_fewshot_neurons = torch.tensor(datamodule.train_fewshot_data)[:, :35, :].detach()
+        # train_fewshot_neurons = torch.tensor(batches_train)[:, :35, :].detach()
+        train_fewshot_neurons = torch.concat([l[0][1][1] for l in list(batches_train)])[:,:35,:].detach()
         self.target_name = "reallyheldout"
 
         if self.use_recon_as_targets:
 
-            recon_data = torch.concat([l[0].recon_data for l in list(batches_train)])
+            recon_data = torch.concat([l[0][0].recon_data for l in list(batches_train)])
             # train_fewshot_neurons = torch.concat([train_fewshot_neurons, recon_data[..., :35, :]], axis=-1)  # -23
             train_fewshot_neurons = recon_data[..., :35, :].detach()
             self.target_name = "recon"

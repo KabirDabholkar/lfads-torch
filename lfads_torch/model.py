@@ -376,14 +376,15 @@ class StoreOutputsLFADS(LFADS):
         assert split in ["train", "valid"]
         # Determine which sessions are in the batch
         sessions = sorted(batch.keys())
-        # Discard the extra data - only the SessionBatches are relevant here
-        batch = {s: b[0] for s, b in batch.items()}
 
         ####### Modifications start #########
         batches = getattr(self,'batches_'+split)
         batches += [batch]
         setattr(self,'batches_'+split,batches)
         ####### Modifications end #########
+
+        # Discard the extra data - only the SessionBatches are relevant here
+        batch = {s: b[0] for s, b in batch.items()}
 
         # Process the batch for each session (in order so aug stack can keep track)
         aug_stack = self.train_aug_stack if split == "train" else self.infer_aug_stack
