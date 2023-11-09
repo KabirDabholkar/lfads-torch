@@ -153,27 +153,37 @@ class FewshotTrainTest(pl.Callback):
         (input_data_sample, recon_data_sample, *_), _ = datamodule.valid_data[0]
 
         batches_train = model.batches_train
+        batches_valid = model.batches_valid
         outputs_train = model.model_outputs_train
+        outputs_valid = model.model_outputs_valid
 
         _, self.n_obs, self.n_heldin = input_data_sample.shape
 
-        train_factors = torch.concat([t[0].factors for t in outputs_train]) [:, :self.n_obs, :].detach()
-        # train_fewshot_neurons = torch.tensor(batches_train)[:, :35, :].detach()
-        train_fewshot_neurons = torch.concat([l[0][1][1] for l in list(batches_train)])[:,:self.n_obs,:].detach()
+        factors_train = torch.concat([t[0].factors for t in outputs_train]) [:, :self.n_obs, :].detach()
+        factors_valid = torch.concat([t[0].factors for t in outputs_valid])[:, :self.n_obs, :].detach()
+
+        fewshot_neurons_train = torch.concat([l[0][1][1] for l in list(batches_train)])[:,:self.n_obs,:].detach()
+        fewshot_neurons_valid = torch.concat([l[0][1][1] for l in list(batches_valid)])[:, :self.n_obs, :].detach()
+
+
+
         self.target_name = "reallyheldout"
 
         if self.use_recon_as_targets:
-
             recon_data = torch.concat([l[0][0].recon_data for l in list(batches_train)])
-            # train_fewshot_neurons = torch.concat([train_fewshot_neurons, recon_data[..., :35, :]], axis=-1)  # -23
-            train_fewshot_neurons = recon_data[..., :self.n_obs, :].detach()
+            fewshot_neurons_train = recon_data[..., :self.n_obs, :].detach()
+            recon_data = torch.concat([l[0][0].recon_data for l in list(batches_valid)])
+            fewshot_neurons_valid = recon_data[..., :self.n_obs, :].detach()
             self.target_name = "recon"
 
-        train_samples = train_factors.shape[0]
-        k = self.K
-        samples = np.random.choice(train_samples, size=k, replace=False)
-        X = train_factors[samples]  # .reshape(-1,train_factors.shape[-1])
-        Y = train_fewshot_neurons[samples]  # .reshape(-1,train_fewshot_neurons.shape[-1])
+        self.true_validation_set = (factors_valid,fewshot_neurons_valid)
+
+        train_samples = factors_train.shape[0]
+
+        assert self.K<=train_samples
+
+        X = factors_train[:self.K]
+        Y = fewshot_neurons_train[:self.K]
 
         valid_size = int(self.ratio * X.shape[0])
         arrays = train_test_split(*[X, Y], test_size=valid_size, random_state=self.seed)
@@ -188,8 +198,8 @@ class FewshotTrainTest(pl.Callback):
             self.fewshot_head_model = self.fewshot_head_model_partial
             if isinstance(self.fewshot_head_model, partial):
                 self.fewshot_head_model = self.fewshot_head_model(
-                    train_factors.shape[-1],
-                    train_fewshot_neurons.shape[-1]
+                    factors_train.shape[-1],
+                    fewshot_neurons_train.shape[-1]
                 )
 
         if isinstance(self.fewshot_head_model,pl.LightningModule):
@@ -276,25 +286,35 @@ class FewshotTrainTest(pl.Callback):
 
         print('Done.\nTesting few shot head...')
 
+        X_trueval,Y_trueval = self.true_validation_set
+
         if isinstance(fewshot_head_model,pl.LightningModule):
-            fewshot_head_model = fewshot_head_model.to(self.X_val.device)
-            pred = fewshot_head_model(self.X_val)
+            # fewshot_head_model = fewshot_head_model.to(self.X_val.device)
+            # pred = fewshot_head_model(self.X_val)
+            fewshot_head_model = fewshot_head_model.to(X_trueval.device)
+            pred = fewshot_head_model(X_trueval)
         else:
-            X_val, Y_val = fewshot_val
-            pred = fewshot_head_model.predict(X_val.reshape(-1,X_val.shape[-1]).detach().cpu().numpy())
-            pred = torch.tensor(pred.reshape(Y_val.shape),device=Y_val.device)
+            # X_val, Y_val = fewshot_val
+            # pred = fewshot_head_model.predict(X_val.reshape(-1,X_val.shape[-1]).detach().cpu().numpy())
+            # pred = torch.tensor(pred.reshape(Y_val.shape),device=Y_val.device)
+            # pred = torch.log(pred)
+            pred = fewshot_head_model.predict(X_trueval.reshape(-1, X_trueval.shape[-1]).detach().cpu().numpy())
+            pred = torch.tensor(pred.reshape(Y_trueval.shape),device=Y_trueval.device)
             pred = torch.log(pred)
 
         ### bps evaluated all recon neurons
-        valid_kshot_smoothing = bits_per_spike(pred, self.Y_val)
+        # valid_kshot_smoothing = bits_per_spike(pred, self.Y_val)
+        valid_kshot_smoothing = bits_per_spike(pred, Y_trueval)
         head_module_name = '.'.join([self.fewshot_head_model.__class__.__module__,self.fewshot_head_model.__class__.__name__])
-        pl_module.log_dict({f'valid/{self.K}shot_{head_module_name}_recon_bps_{self.target_name}':valid_kshot_smoothing})
+        pl_module.log_dict({f'valid/{self.K}shot_{head_module_name}_{self.target_name}_bps':valid_kshot_smoothing})
 
-        ### bps evaluated on the heldout subset of recon neurons
-        valid_kshot_smoothing = bits_per_spike(pred[:,:,self.n_heldin:], self.Y_val[:,:,self.n_heldin:])
-        #head_module_name = self.fewshot_head_model.__class__ #.__module__  #.split('.')[0]
-        head_module_name = '.'.join([self.fewshot_head_model.__class__.__module__,self.fewshot_head_model.__class__.__name__])
-        pl_module.log_dict({f'valid/{self.K}shot_{head_module_name}_co_bps_{self.target_name}':valid_kshot_smoothing})
+        if self.target_name=='recon':
+            ### bps evaluated on the heldout subset of recon neurons, only if this is the recon set
+            # valid_kshot_smoothing = bits_per_spike(pred[:,:,self.n_heldin:], self.Y_val[:,:,self.n_heldin:])
+            valid_kshot_smoothing = bits_per_spike(pred[:, :, self.n_heldin:], Y_trueval[:, :, self.n_heldin:])
+            head_module_name = '.'.join([self.fewshot_head_model.__class__.__module__,self.fewshot_head_model.__class__.__name__])
+            pl_module.log_dict({f'valid/{self.K}shot_{head_module_name}_co_bps':valid_kshot_smoothing})
+
 
 def run_fewshot_analysis(
         model,
@@ -379,7 +399,7 @@ def run_fewshot_analysis(
         im = plt.imshow(train_fewshot_neurons[2].detach().cpu().T)
         plt.colorbar(im, ax=ax)
         plt.savefig('/Users/kabir/Documents/code/lfads-torch/test_output.png')
-    print(train_fewshot_neurons.mean())
+
     bits_per_spike(fewshot_head_model(X_val),Y_val)
     # model = FewshotLFADS()
     # trainer.fit()
