@@ -17,6 +17,9 @@ datamodule:
   _target_: lfads_torch.datamodules_fewshot.DoubleHeldoutDataModule
   split_keep_first: true
   num_new_heldout_neurons: ${new_heldout_units}
+  batch_keys:
+    - behavior
+    - fewshot_data
   attr_keys:
     - psth
     - train_cond_idx
