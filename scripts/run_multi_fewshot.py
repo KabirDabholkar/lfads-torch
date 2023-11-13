@@ -15,9 +15,10 @@ from paths import runs_path
 # ---------- OPTIONS -----------
 PROJECT_STR = "lfads-torch-fewshot-benchmark"
 DATASET_STR = "nlb_mc_maze"
-# RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
-RUN_TAG = '231110_002643_MultiFewshot'
+RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
+OLD_RUN_TAG = '231110_002643_MultiFewshot'
 RUN_DIR = Path(runs_path) / PROJECT_STR / DATASET_STR / RUN_TAG
+OLD_RUN_DIR = Path(runs_path) / PROJECT_STR / DATASET_STR / OLD_RUN_TAG
 experiment_json_path = 'experiment_state-2023-11-10_00-26-47.json'
 # ------------------------------
 
@@ -29,12 +30,16 @@ mandatory_overrides = {
     "logger.wandb_logger.tags.1": DATASET_STR,
     "logger.wandb_logger.tags.2": RUN_TAG,
 }
-experiment_json_path_full = RUN_DIR / experiment_json_path
+
+experiment_json_path_full = OLD_RUN_DIR / experiment_json_path
 trial_ids = None
+print(experiment_json_path_full)
 if os.path.exists(experiment_json_path_full):
-    with open() as f:
+    with open(experiment_json_path_full) as f:
         experiment_data = json.load(f)
     trial_ids = [json.loads(experiment)['trial_id'] for experiment in experiment_data['checkpoints']]
+else:
+    raise FileNotFoundError()
 
 RUN_DIR.mkdir(parents=True,exist_ok=True)
 # Copy this script into the run directory
@@ -49,7 +54,7 @@ tune.run(
         do_train=False,
         do_posterior_sample=False,
         do_fewshot_protocol=False,
-        run_dir = RUN_DIR,
+        run_dir = OLD_RUN_DIR,
         trial_ids = trial_ids
     ),
     metric="valid/recon_smth",

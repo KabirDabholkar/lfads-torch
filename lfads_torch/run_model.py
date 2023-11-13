@@ -144,7 +144,7 @@ def run_model(
             # runs = os.listdir( run_dir )
             # runs = [r for r in runs if 'run_model' in r]
             run_name = 'run_model_' + [r for r in trial_ids if tune_trial_name_number in r][0]
-            checkpoint_dir = run_dir / run_name / 'lightning_checkpoints'
+            checkpoint_dir = Path(run_dir) / run_name / 'lightning_checkpoints'
 
         print('checkpoint_dir',checkpoint_dir)
 
