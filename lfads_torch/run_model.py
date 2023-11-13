@@ -143,6 +143,8 @@ def run_model(
             run_name = [r for r in runs if tune_trial_name_number in r][0]
             checkpoint_dir = run_dir / run_name / 'lightning_checkpoints'
 
+        print('checkpoint_dir',checkpoint_dir)
+
         if checkpoint_dir:
             ckpt_pattern = os.path.join(checkpoint_dir, "*.ckpt")
             ckpt_path = max(glob(ckpt_pattern), key=os.path.getctime)
