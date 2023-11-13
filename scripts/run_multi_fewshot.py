@@ -1,3 +1,4 @@
+import os.path
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -6,6 +7,7 @@ from ray import tune
 from ray.tune import CLIReporter
 from ray.tune.schedulers import FIFOScheduler
 from ray.tune.suggest.basic_variant import BasicVariantGenerator
+import json
 
 from lfads_torch.run_model import run_model
 from paths import runs_path
@@ -16,6 +18,7 @@ DATASET_STR = "nlb_mc_maze"
 # RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
 RUN_TAG = '231110_002643_MultiFewshot'
 RUN_DIR = Path(runs_path) / PROJECT_STR / DATASET_STR / RUN_TAG
+experiment_json_path = 'experiment_state-2023-11-10_00-26-47.json'
 # ------------------------------
 
 # Set the mandatory config overrides to select datamodule and model
@@ -26,9 +29,18 @@ mandatory_overrides = {
     "logger.wandb_logger.tags.1": DATASET_STR,
     "logger.wandb_logger.tags.2": RUN_TAG,
 }
+experiment_json_path_full = RUN_DIR / experiment_json_path
+trial_ids = None
+if os.path.exists(experiment_json_path_full):
+    with open() as f:
+        experiment_data = json.load(f)
+    trial_ids = [json.loads(experiment)['trial_id'] for experiment in experiment_data['checkpoints']]
+
 RUN_DIR.mkdir(parents=True,exist_ok=True)
 # Copy this script into the run directory
 shutil.copyfile(__file__, RUN_DIR / Path(__file__).name)
+
+
 # Run the hyperparameter search
 tune.run(
     tune.with_parameters(
@@ -37,7 +49,8 @@ tune.run(
         do_train=False,
         do_posterior_sample=False,
         do_fewshot_protocol=False,
-        run_dir = RUN_DIR
+        run_dir = RUN_DIR,
+        trial_ids = trial_ids
     ),
     metric="valid/recon_smth",
     mode="min",
