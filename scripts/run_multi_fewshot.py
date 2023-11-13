@@ -56,7 +56,7 @@ tune.run(
         "model.l2_con_scale": tune.loguniform(1e-4, 1e0),
     },
     resources_per_trial=dict(cpu=3, gpu=0.5),
-    num_samples=60,
+    num_samples=1,
     local_dir=RUN_DIR.parent,
     search_alg=BasicVariantGenerator(random_state=0),
     scheduler=FIFOScheduler(),
