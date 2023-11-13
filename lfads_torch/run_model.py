@@ -26,6 +26,7 @@ def run_model(
     do_posterior_sample: bool = True,
     do_fewshot_protocol: bool = True,
     post_run_analysis  : bool = True,
+    run_dir = None,
 ):
     """Adds overrides to the default config, instantiates all PyTorch Lightning
     objects from config, and runs the training pipeline.
@@ -134,6 +135,14 @@ def run_model(
     #     )
 
     if post_run_analysis:
+        if "single" not in str(config_path) and run_dir:
+            tune_trial_name = tune.get_trial_name()
+            tune_trial_name_number = str(tune_trial_name).split('_')[-1]
+            runs = os.listdir( run_dir )
+            runs = [r for r in runs if 'run_model' in r]
+            run_name = [r for r in runs if tune_trial_name_number in r][0]
+            checkpoint_dir = run_dir / run_name / 'lightning_checkpoints'
+
         if checkpoint_dir:
             ckpt_pattern = os.path.join(checkpoint_dir, "*.ckpt")
             ckpt_path = max(glob(ckpt_pattern), key=os.path.getctime)

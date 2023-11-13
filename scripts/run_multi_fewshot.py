@@ -37,6 +37,7 @@ tune.run(
         do_train=False,
         do_posterior_sample=False,
         do_fewshot_protocol=False,
+        run_dir = RUN_DIR
     ),
     metric="valid/recon_smth",
     mode="min",
