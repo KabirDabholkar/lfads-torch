@@ -32,5 +32,5 @@ run_model(
     # config_path="../configs/single.yaml",
     do_train=False,
     do_posterior_sample=False,
-    do_fewshot_protocol=True,
+    do_fewshot_protocol=False,
 )

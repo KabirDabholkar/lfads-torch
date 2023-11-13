@@ -13,8 +13,8 @@ from paths import runs_path
 # ---------- OPTIONS -----------
 PROJECT_STR = "lfads-torch-fewshot-benchmark"
 DATASET_STR = "nlb_mc_maze"
-# RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
-RUN_TAG = '231109_164714_MultiFewshot'
+RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
+# RUN_TAG = '231109_164714_MultiFewshot'
 RUN_DIR = Path(runs_path) / PROJECT_STR / DATASET_STR / RUN_TAG
 # ------------------------------
 
@@ -36,7 +36,7 @@ tune.run(
         config_path="../configs/multi_few_shot.yaml",
         do_train=False,
         do_posterior_sample=False,
-        do_fewshot_protocol=True,
+        do_fewshot_protocol=False,
     ),
     metric="valid/recon_smth",
     mode="min",
