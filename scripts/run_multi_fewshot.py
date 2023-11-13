@@ -13,7 +13,8 @@ from paths import runs_path
 # ---------- OPTIONS -----------
 PROJECT_STR = "lfads-torch-fewshot-benchmark"
 DATASET_STR = "nlb_mc_maze"
-RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
+# RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
+RUN_TAG = '231109_164714_MultiFewshot'
 RUN_DIR = Path(runs_path) / PROJECT_STR / DATASET_STR / RUN_TAG
 # ------------------------------
 
@@ -25,7 +26,7 @@ mandatory_overrides = {
     "logger.wandb_logger.tags.1": DATASET_STR,
     "logger.wandb_logger.tags.2": RUN_TAG,
 }
-RUN_DIR.mkdir(parents=True)
+RUN_DIR.mkdir(parents=True,exist_ok=True)
 # Copy this script into the run directory
 shutil.copyfile(__file__, RUN_DIR / Path(__file__).name)
 # Run the hyperparameter search
@@ -33,6 +34,9 @@ tune.run(
     tune.with_parameters(
         run_model,
         config_path="../configs/multi_few_shot.yaml",
+        do_train=False,
+        do_posterior_sample=False,
+        do_fewshot_protocol=True,
     ),
     metric="valid/recon_smth",
     mode="min",

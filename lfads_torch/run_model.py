@@ -10,6 +10,7 @@ import torch
 from hydra.utils import call, instantiate
 from omegaconf import OmegaConf, open_dict
 from ray import tune
+from functools import partial
 
 from .utils import flatten
 
@@ -24,6 +25,7 @@ def run_model(
     do_train: bool = True,
     do_posterior_sample: bool = True,
     do_fewshot_protocol: bool = True,
+    post_run_analysis  : bool = True,
 ):
     """Adds overrides to the default config, instantiates all PyTorch Lightning
     objects from config, and runs the training pipeline.
@@ -100,32 +102,57 @@ def run_model(
         call(config.posterior_sampling.fn, model=model, datamodule=datamodule)
 
     # Run few shot
-    if do_fewshot_protocol:
-        # Temporary workaround for PTL step-resuming bug
-        if checkpoint_dir:
-            ckpt = torch.load(ckpt_path)
-            trainer.fit_loop.epoch_loop._batches_that_stepped = ckpt["global_step"]
+    # if do_fewshot_protocol:
+    #     # Temporary workaround for PTL step-resuming bug
+    #     if checkpoint_dir:
+    #         ckpt = torch.load(ckpt_path)
+    #         trainer.fit_loop.epoch_loop._batches_that_stepped = ckpt["global_step"]
+    #
+    #     trainer = instantiate(
+    #         config.trainer,
+    #         callbacks=[instantiate(c) for c in config.callbacks.values()],
+    #         logger=[instantiate(lg) for lg in config.logger.values()],
+    #         gpus=int(torch.cuda.is_available()),
+    #     )
+    #
+    #     fewshot_head_model = instantiate(
+    #         config.fewshot_head_model
+    #     )
+    #     fewshot_trainer = instantiate(
+    #         config.fewshot_trainer
+    #     )
+    #     # print(type(fewshot_head_model(1,1)))
+    #     call(
+    #         config.fewshot_protocol.fn,
+    #         model=model,
+    #         fewshot_head_model=fewshot_head_model,
+    #         datamodule=datamodule,
+    #         trainer=trainer,
+    #         fewshot_trainer=fewshot_trainer,
+    #         K = [1000]
+    #     )
 
+    if post_run_analysis:
         trainer = instantiate(
             config.trainer,
-            callbacks=[instantiate(c) for c in config.callbacks.values()],
+            callbacks=[instantiate(c) for c in config.post_run_analysis_callbacks.values()],
             logger=[instantiate(lg) for lg in config.logger.values()],
             gpus=int(torch.cuda.is_available()),
         )
+        trainer.fit_loop.max_epochs = 1
+        datamodule = instantiate(config.datamodule, _convert_="all")
 
-        fewshot_head_model = instantiate(
-            config.fewshot_head_model
-        )
-        fewshot_trainer = instantiate(
-            config.fewshot_trainer
-        )
-        # print(type(fewshot_head_model(1,1)))
-        call(
-            config.fewshot_protocol.fn,
+        def training_step(self, batch, batch_idx):
+            opt = self.optimizers()
+            opt.zero_grad()
+            loss = self._shared_step(batch, batch_idx, "train")
+            # self.manual_backward(loss)
+            opt.step()
+            return None
+
+        model.training_step = partial(training_step,model)
+
+        trainer.fit(
             model=model,
-            fewshot_head_model=fewshot_head_model,
             datamodule=datamodule,
-            trainer=trainer,
-            fewshot_trainer=fewshot_trainer,
-            K = [1000]
         )

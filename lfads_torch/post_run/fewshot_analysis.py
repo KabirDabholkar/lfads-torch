@@ -18,6 +18,7 @@ from ..metrics import bits_per_spike, regional_bits_per_spike
 
 from torch.utils.data import DataLoader, Dataset, TensorDataset
 from sklearn.model_selection import train_test_split
+import warnings
 
 import pytorch_lightning as pl
 
@@ -123,6 +124,7 @@ class FewshotTrainTest(pl.Callback):
             log_every_n_epochs=20,
             fewshot_trainer_epochs: int = 50,
             use_recon_as_targets: bool = False,
+            eval_type: str = 'valid',
             #decoding_cv_sweep=False,
         ):
         """Initializes the callback.
@@ -145,6 +147,7 @@ class FewshotTrainTest(pl.Callback):
         self.fewshot_dataloaders = None
         self.fewshot_trainer_epochs = fewshot_trainer_epochs
         self.use_recon_as_targets = use_recon_as_targets
+        self.eval_type = eval_type
 
     def my_setup(self, trainer, pl_module, initialise_head: bool = True):
         datamodule = trainer.datamodule
@@ -255,7 +258,11 @@ class FewshotTrainTest(pl.Callback):
             return
 
         if not hasattr(pl_module,'model_outputs_train'):
-            print('Module has no attribute "model_latents_train".')
+            warnings.warn('Module has no attribute "model_latents_train".',RuntimeWarning)
+            return
+
+        if len(pl_module.model_outputs_train)==0:
+            warnings.warn('"model_latents_train" is empty.',RuntimeWarning)
             return
 
         # if self.fewshot_dataloaders is None:
@@ -313,7 +320,7 @@ class FewshotTrainTest(pl.Callback):
             # valid_kshot_smoothing = bits_per_spike(pred[:,:,self.n_heldin:], self.Y_val[:,:,self.n_heldin:])
             valid_kshot_smoothing = bits_per_spike(pred[:, :, self.n_heldin:], Y_trueval[:, :, self.n_heldin:])
             head_module_name = '.'.join([self.fewshot_head_model.__class__.__module__,self.fewshot_head_model.__class__.__name__])
-            pl_module.log_dict({f'valid/{self.K}shot_{head_module_name}_co_bps':valid_kshot_smoothing})
+            pl_module.log_dict({f'{self.eval_type}/{self.K}shot_{head_module_name}_co_bps':valid_kshot_smoothing})
 
 
 def run_fewshot_analysis(

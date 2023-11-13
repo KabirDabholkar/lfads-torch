@@ -6,6 +6,8 @@ import pytorch_lightning as pl
 import torch
 from PIL import Image
 from sklearn.decomposition import PCA
+from typing import Callable, Iterable, List
+import warnings
 
 from .utils import send_batch_to_device
 
@@ -239,3 +241,71 @@ class TestEval(pl.Callback):
             test_output.output_params[:, :esl, :edd],
         )
         pl_module.log("test/recon", test_recon)
+
+
+class AnalysisCallback(pl.Callback):
+    def __init__(
+            self,
+            analysis_func : Callable,
+            arg_names : List[str],
+            log_name: str,
+            log_every_n_epochs=100,
+    ):
+        """Initializes the callback.
+
+        Parameters
+        ----------
+        log_every_n_epochs : int, optional
+            The frequency with which to plot and log, by default 100
+        """
+        self.log_every_n_epochs = log_every_n_epochs
+        self.analysis_func = analysis_func
+        self.arg_names = arg_names
+        self.log_name = log_name
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        # Skip evaluation for most epochs to save time
+        if (trainer.current_epoch % self.log_every_n_epochs) != 0:
+            return
+
+        if not hasattr(pl_module,'model_outputs_train'):
+            warnings.warn('Module has no attribute "model_latents_train".',RuntimeWarning)
+            return
+
+        if len(pl_module.model_outputs_train)==0:
+            warnings.warn("'model_latents_train' is empty, skipping 'on_validation_epoch_end'.",RuntimeWarning)
+            return
+
+        datamodule = trainer.datamodule
+        model = pl_module
+
+        (input_data_sample, recon_data_sample, *_), _ = datamodule.valid_data[0]
+
+        # batches_train = model.batches_train
+        # batches_valid = model.batches_valid
+        outputs_train = model.model_outputs_train
+        outputs_valid = model.model_outputs_valid
+
+        def collate_from_outputs(outputs,attr):
+            return torch.concat([getattr(t[0],attr) for t in outputs])
+
+        def to_numpy(tensor):
+            return tensor.detach().cpu().numpy()
+
+        def collapse_batch_dims(arr):
+            return arr.reshape(-1, arr.shape[-1])
+
+        args = [
+            to_numpy(
+                collapse_batch_dims(
+                    collate_from_outputs(outputs_valid,attr)
+                )
+            ) for attr in self.arg_names
+        ]
+
+        pl_module.log(
+            self.log_name,
+            self.analysis_func(*args)
+        )
+
+
