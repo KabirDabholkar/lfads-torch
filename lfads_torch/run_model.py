@@ -151,6 +151,7 @@ def run_model(
         if checkpoint_dir:
             ckpt_pattern = os.path.join(checkpoint_dir, "*.ckpt")
             ckpt_path = max(glob(ckpt_pattern), key=os.path.getctime)
+            model.load_state_dict(torch.load(ckpt_path)["state_dict"])
 
         trainer = instantiate(
             config.trainer,
