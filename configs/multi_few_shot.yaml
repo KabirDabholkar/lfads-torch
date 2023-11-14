@@ -236,6 +236,11 @@ post_run_analysis_callbacks:
       - factors
     log_every_n_epochs  : 1
 
-  raster_plot     : ${callbacks.raster_plot}
-  trajectory_plot : ${callbacks.trajectory_plot}
+  raster_plot:
+    _target_: lfads_torch.callbacks.RasterPlot
+    log_every_n_epochs: 1
+
+  trajectory_plot:
+    _target_: lfads_torch.callbacks.TrajectoryPlot
+    log_every_n_epochs: 1
 
