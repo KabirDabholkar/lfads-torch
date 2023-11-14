@@ -58,7 +58,8 @@ tune.run(
         do_posterior_sample=False,
         do_fewshot_protocol=False,
         run_dir = OLD_RUN_DIR,
-        trial_ids = trial_ids
+        trial_ids = trial_ids,
+        load_best = False
     ),
     # metric="valid/recon_smth",  removed for loading checkpoints for analysis
     # mode="min",
