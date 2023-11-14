@@ -17,9 +17,12 @@ PROJECT_STR = "lfads-torch-fewshot-benchmark"
 DATASET_STR = "nlb_mc_maze"
 RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
 OLD_RUN_TAG = '231110_002643_MultiFewshot'
-RUN_DIR = Path(runs_path) / PROJECT_STR / DATASET_STR / RUN_TAG
-OLD_RUN_DIR = Path(runs_path) / PROJECT_STR / DATASET_STR / OLD_RUN_TAG
 experiment_json_path = 'experiment_state-2023-11-10_00-26-47.json'
+
+
+RUN_DIR     = Path(runs_path) / PROJECT_STR / DATASET_STR / RUN_TAG
+OLD_RUN_DIR = Path(runs_path) / PROJECT_STR / DATASET_STR / OLD_RUN_TAG
+
 # ------------------------------
 
 # Set the mandatory config overrides to select datamodule and model
@@ -57,8 +60,8 @@ tune.run(
         run_dir = OLD_RUN_DIR,
         trial_ids = trial_ids
     ),
-    metric="valid/recon_smth",
-    mode="min",
+    # metric="valid/recon_smth",  removed for loading checkpoints for analysis
+    # mode="min",
     name=RUN_DIR.name,
     config={
         **mandatory_overrides,
@@ -74,7 +77,7 @@ tune.run(
         "model.l2_con_scale": tune.loguniform(1e-4, 1e0),
     },
     resources_per_trial=dict(cpu=3, gpu=0.5),
-    num_samples=1,
+    num_samples=60,
     local_dir=RUN_DIR.parent,
     search_alg=BasicVariantGenerator(random_state=0),
     scheduler=FIFOScheduler(),
