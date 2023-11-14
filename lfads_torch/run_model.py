@@ -29,6 +29,7 @@ def run_model(
     post_run_analysis  : bool = True,
     run_dir: Optional[os.PathLike] = None,
     trial_ids: Optional[list[str]] = None,
+    load_best: bool = True,
 ):
     """Adds overrides to the default config, instantiates all PyTorch Lightning
     objects from config, and runs the training pipeline.
@@ -149,8 +150,10 @@ def run_model(
         print('checkpoint_dir',checkpoint_dir)
 
         if checkpoint_dir:
-            ckpt_pattern = os.path.join(checkpoint_dir, "*.ckpt")
-            ckpt_path = max(glob(ckpt_pattern), key=os.path.getctime)
+            ckpt_path = os.path.join(checkpoint_dir, "last.ckpt")
+            if load_best:
+                ckpt_pattern = os.path.join(checkpoint_dir, "*.ckpt")
+                ckpt_path = max(glob(ckpt_pattern), key=os.path.getctime)
             model.load_state_dict(torch.load(ckpt_path)["state_dict"])
 
         trainer = instantiate(
