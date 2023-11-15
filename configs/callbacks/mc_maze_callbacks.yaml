@@ -1,0 +1,30 @@
+defaults:
+  - default
+  - fewshot_callbacks@fewshot1000_recon: fewshot_base
+  - fewshot_callbacks@fewshot1000_reallyheldout: fewshot_base
+  - fewshot_callbacks@fewshot100_recon: fewshot_base
+  - fewshot_callbacks@fewshot100_reallyheldout: fewshot_base
+  - _self_
+
+fewshot1000_recon:
+  fewshot_head_model  : ${fewshot_head_model_lightning}
+  fewshot_trainer     : ${fewshot_trainer}
+  K                   : 1000
+  use_recon_as_targets: true
+
+fewshot1000_reallyheldout:
+  fewshot_head_model  : ${fewshot_head_model_lightning}
+  fewshot_trainer     : ${fewshot_trainer}
+  K                   : 1000
+
+
+fewshot100_recon:
+  fewshot_head_model  : ${fewshot_head_model_lightning}
+  fewshot_trainer     : ${fewshot_trainer}
+  K                   : 100
+  use_recon_as_targets: true
+
+fewshot100_reallyheldout:
+  fewshot_head_model  : ${fewshot_head_model_lightning}
+  fewshot_trainer     : ${fewshot_trainer}
+  K                   : 100

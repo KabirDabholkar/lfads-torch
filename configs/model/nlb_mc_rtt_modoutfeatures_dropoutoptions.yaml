@@ -1,0 +1,21 @@
+defaults:
+  - nlb_mc_rtt
+  - _self_
+
+#### Modifications ###
+#1. StoreOutputsLFADS inherits LFADS and stores outputs during train and validation
+#2. num output features decided according to new_heldout_units
+#3. dropout_target can be row-wise or salt-and-pepper.
+
+_target_: lfads_torch.model.StoreOutputsLFADS
+readout:
+  modules:
+    - _target_: lfads_torch.modules.readin_readout.FanInLinear
+      in_features: ${model.fac_dim}
+      out_features: ${eval:${model.encod_data_dim} + ${new_heldout_units}}
+train_aug_stack:
+  transforms:
+    - _target_: ${dropout_target}
+      cd_rate: 0.3
+      cd_pass_rate: 0.0
+      ic_enc_seq_len: ${model.ic_enc_seq_len}
