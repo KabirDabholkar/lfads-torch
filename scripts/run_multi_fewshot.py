@@ -27,8 +27,8 @@ OLD_RUN_DIR = RUN_DIR
 
 # Set the mandatory config overrides to select datamodule and model
 mandatory_overrides = {
-    "datamodule": DATASET_STR,
-    "model": DATASET_STR,
+    # "datamodule": DATASET_STR,
+    # "model": DATASET_STR,
     "logger.wandb_logger.project": PROJECT_STR,
     "logger.wandb_logger.tags.1": DATASET_STR,
     "logger.wandb_logger.tags.2": RUN_TAG,

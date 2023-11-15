@@ -2,10 +2,10 @@ defaults:
   - multi
   - fewshot_head_model@fewshot_head_model_lightning: linear_lightning
   - fewshot_head_model@fewshot_head_model_sklearn: linear_sklearn
-  - model@new_model: nlb_mc_maze_modoutfeatures_dropoutoptions
-  - datamodule@new_datamodule: nlb_mc_maze_doubleheldout
-  - override callbacks: mc_maze_callbacks
   - _self_
+  - override model      : nlb_mc_maze_modoutfeatures_dropoutoptions
+  - override datamodule : nlb_mc_maze_doubleheldout
+  - override callbacks  : mc_maze_callbacks
 
 new_heldout_units: 23
 # old_heldout_units: ${eval:${model.readout.modules[0].out_features}-${model.encod_data_dim}}
@@ -15,9 +15,6 @@ log_every_n_epochs_fewshot : 10
 
 dropout_target : lfads_torch.modules.augmentations.CoordinatedDropoutChannelWise
 cd_rate : 0.3
-
-datamodule: ${new_datamodule}
-model: ${new_model}
 
 fewshot_trainer:
   _target_: pytorch_lightning.Trainer
