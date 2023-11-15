@@ -2,15 +2,12 @@ defaults:
   - single
   - fewshot_head_model@fewshot_head_model_lightning: linear_lightning
   - fewshot_head_model@fewshot_head_model_sklearn: linear_sklearn
-#  - fewshot_head_model: linear_sklearn
-  - model@new_model           : nlb_mc_rtt_modoutfeatures_dropoutoptions
-  - datamodule@new_datamodule : nlb_mc_rtt_doubleheldout
   - _self_
-#  - override model@model: nlb_mc_maze_modoutfeatures_dropoutoptions
-#  - override datamodule@datamodule: nlb_mc_maze_doubleheldout
-#  - override /model@model: nlb_mc_maze_modoutfeatures_dropoutoptions
-#  - override /datamodule: nlb_mc_maze_doubleheldout
+  - override model      : nlb_mc_rtt_modoutfeatures_dropoutoptions    # new directory hack to override model
+  - override datamodule : nlb_mc_rtt_doubleheldout   #  new directory hack to override datamodule
   - override callbacks  : mc_rtt_callbacks
+
+
 
 #### Same as single_few_shot_mc_maze.yaml but removed K=1000 few shot. because only ~800 trials available.
 
@@ -21,9 +18,6 @@ fewshot_neurons: 16
 log_every_n_epochs_fewshot: 10
 
 dropout_target : lfads_torch.modules.augmentations.CoordinatedDropoutChannelWise
-
-datamodule: ${new_datamodule}
-model: ${new_model}
 
 fewshot_protocol:
   use_best_ckpt: True

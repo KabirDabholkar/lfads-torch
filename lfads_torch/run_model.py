@@ -46,8 +46,6 @@ def run_model(
         config = hydra.compose(config_name=config_path.name, overrides=overrides)
 
     print(OmegaConf.to_yaml(config))
-    # OmegaConf.resolve(config)
-    # print(OmegaConf.to_yaml( config ))
 
     # Avoid flooding the console with output during multi-model runs
     if config.ignore_warnings:

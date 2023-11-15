@@ -1,0 +1,3 @@
+defaults:
+  - model : nlb_mc_rtt_modoutfeatures_dropoutoptions    # new directory hack to override model
+  - _self_
