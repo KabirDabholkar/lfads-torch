@@ -26,7 +26,7 @@ def run_model(
     do_train: bool = True,
     do_posterior_sample: bool = True,
     do_fewshot_protocol: bool = True,
-    post_run_analysis  : bool = True,
+    do_post_run_analysis  : bool = True,
     run_dir: Optional[os.PathLike] = None,
     trial_ids: Optional[list[str]] = None,
     load_best: bool = True,
@@ -139,7 +139,7 @@ def run_model(
     #         K = [1000]
     #     )
 
-    if post_run_analysis:
+    if do_post_run_analysis:
         if "single" not in str(config_path) and run_dir:
             tune_trial_name = tune.get_trial_name()
             tune_trial_name_number = str(tune_trial_name).split('_')[-1]
