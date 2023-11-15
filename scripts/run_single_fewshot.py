@@ -8,7 +8,8 @@ from paths import runs_path
 
 # ---------- OPTIONS -----------
 PROJECT_STR = "lfads-torch-example"
-DATASET_STR = "nlb_mc_rtt"
+DATASET_STR = "nlb_mc_maze"
+config_path = "../configs/single_few_shot_mc_maze.yaml"
 RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_exampleSingle"
 # RUN_TAG = "231113_131336_exampleSingle"
 RUN_DIR = Path(runs_path) / PROJECT_STR / DATASET_STR / RUN_TAG
@@ -28,7 +29,7 @@ run_model(
     #     "datamodule": DATASET_STR,
     #     "model": DATASET_STR,
     # },
-    config_path="../configs/single_few_shot_mc_rtt.yaml",
+    config_path=config_path,
     # config_path="../configs/test.yaml",
     do_train=True,
     do_posterior_sample=False,

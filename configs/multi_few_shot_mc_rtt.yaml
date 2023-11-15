@@ -38,28 +38,28 @@ fewshot_trainer:
 
 
 post_run_analysis_callbacks:
-  fewshot1000_reallyheldout:
-    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
-    fewshot_head_model  : ${fewshot_head_model_lightning}
-    fewshot_trainer     : ${fewshot_trainer}
-    K                   : 1000
-    ratio               : 0.3
-    seed                : 0
-    log_every_n_epochs  : 1
-    fewshot_trainer_epochs: 150
-    eval_type           : post_run
-
-  fewshot1000_recon:
-    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
-    fewshot_head_model  : ${fewshot_head_model_lightning}
-    fewshot_trainer     : ${fewshot_trainer}
-    K                   : 1000
-    ratio               : 0.3
-    seed                : 0
-    log_every_n_epochs  : 1
-    fewshot_trainer_epochs: 150
-    use_recon_as_targets: true
-    eval_type           : post_run
+#  fewshot1000_reallyheldout:
+#    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
+#    fewshot_head_model  : ${fewshot_head_model_lightning}
+#    fewshot_trainer     : ${fewshot_trainer}
+#    K                   : 1000
+#    ratio               : 0.3
+#    seed                : 0
+#    log_every_n_epochs  : 1
+#    fewshot_trainer_epochs: 150
+#    eval_type           : post_run
+#
+#  fewshot1000_recon:
+#    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
+#    fewshot_head_model  : ${fewshot_head_model_lightning}
+#    fewshot_trainer     : ${fewshot_trainer}
+#    K                   : 1000
+#    ratio               : 0.3
+#    seed                : 0
+#    log_every_n_epochs  : 1
+#    fewshot_trainer_epochs: 150
+#    use_recon_as_targets: true
+#    eval_type           : post_run
 
   fewshot500_reallyheldout:
     _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest

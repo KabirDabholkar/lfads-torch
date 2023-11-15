@@ -15,10 +15,17 @@ from paths import runs_path
 # ---------- OPTIONS -----------
 PROJECT_STR = "lfads-torch-fewshot-benchmark"
 DATASET_STR = "nlb_mc_rtt"
+num_samples = 60
 RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
-OLD_RUN_TAG = '231110_002643_MultiFewshot'
-experiment_json_path = 'experiment_state-2023-11-10_00-26-47.json'
-load_old_checkpoints = False
+# OLD_RUN_TAG = '231110_002643_MultiFewshot'
+# experiment_json_path = 'experiment_state-2023-11-10_00-26-47.json'
+
+# load small mc_maze test checkpoints
+num_samples = 8
+OLD_RUN_TAG = '231115_155045_MultiFewshot'
+experiment_json_path = 'experiment_state-2023-11-15_15-50-48.json'
+
+load_old_checkpoints = True
 
 RUN_DIR     = Path(runs_path) / PROJECT_STR / DATASET_STR / RUN_TAG
 OLD_RUN_DIR = RUN_DIR
@@ -56,10 +63,10 @@ tune.run(
     tune.with_parameters(
         run_model,
         config_path="../configs/multi_few_shot_mc_rtt.yaml",
-        do_train=True,
+        do_train=False,
         do_posterior_sample=False,
         do_fewshot_protocol=False,
-        do_post_run_analysis=False,
+        do_post_run_analysis=True,
         run_dir = OLD_RUN_DIR,
         trial_ids = trial_ids,
         load_best = False
@@ -81,7 +88,7 @@ tune.run(
         "model.l2_con_scale": tune.loguniform(1e-4, 1e0),
     },
     resources_per_trial=dict(cpu=3, gpu=0.5),
-    num_samples=60,
+    num_samples=num_samples,
     local_dir=RUN_DIR.parent,
     search_alg=BasicVariantGenerator(random_state=0),
     scheduler=FIFOScheduler(),

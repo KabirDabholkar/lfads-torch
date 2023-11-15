@@ -111,7 +111,7 @@ fewshot_protocol:
 
 
 trainer:
-  max_epochs: 6
+  max_epochs: 50
 
 fewshot_trainer:
   _target_: pytorch_lightning.Trainer
