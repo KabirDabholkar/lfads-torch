@@ -1,0 +1,18 @@
+defaults:
+  - nlb_mc_maze
+  - _self_
+
+_target_: lfads_torch.datamodules_fewshot.DoubleHeldoutDataModule
+split_keep_first: true
+num_new_heldout_neurons: ${new_heldout_units}
+batch_keys:
+  - behavior
+  - fewshot_data
+attr_keys:
+  - psth
+  - train_cond_idx
+  - valid_cond_idx
+  - train_decode_mask
+  - valid_decode_mask
+  - train_fewshot_data
+  - valid_fewshot_data

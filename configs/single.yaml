@@ -1,6 +1,8 @@
 defaults:
-  - model: nlb_mc_maze
-  - datamodule: nlb_mc_maze
+#  - model: nlb_mc_maze
+#  - datamodule: nlb_mc_maze
+  - model: nlb_mc_rtt
+  - datamodule: nlb_mc_rtt
   - callbacks: default
   - _self_
 

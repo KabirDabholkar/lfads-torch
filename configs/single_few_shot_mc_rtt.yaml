@@ -1,0 +1,112 @@
+defaults:
+  - single
+  - fewshot_head_model@fewshot_head_model_lightning: linear_lightning
+  - fewshot_head_model@fewshot_head_model_sklearn: linear_sklearn
+#  - fewshot_head_model: linear_sklearn
+  - model@new_model           : nlb_mc_rtt_modoutfeatures_dropoutoptions
+  - datamodule@new_datamodule : nlb_mc_rtt_doubleheldout
+  - _self_
+#  - override model@model: nlb_mc_maze_modoutfeatures_dropoutoptions
+#  - override datamodule@datamodule: nlb_mc_maze_doubleheldout
+#  - override /model@model: nlb_mc_maze_modoutfeatures_dropoutoptions
+#  - override /datamodule: nlb_mc_maze_doubleheldout
+  - override callbacks  : mc_rtt_callbacks
+
+#### Same as single_few_shot_mc_maze.yaml but removed K=1000 few shot. because only ~800 trials available.
+
+new_heldout_units: 16
+# old_heldout_units: ${eval:${model.readout.modules[0].out_features}-${model.encod_data_dim}}
+fewshot_neurons: 16
+
+log_every_n_epochs_fewshot: 10
+
+dropout_target : lfads_torch.modules.augmentations.CoordinatedDropoutChannelWise
+
+datamodule: ${new_datamodule}
+model: ${new_model}
+
+fewshot_protocol:
+  use_best_ckpt: True
+  fn:
+    _target_: lfads_torch.post_run.fewshot_analysis.run_fewshot_analysis
+    # filename: lfads_fewshot_output.h5
+    # num_samples: 50
+
+
+trainer:
+  max_epochs: 6
+
+fewshot_trainer:
+  _target_: pytorch_lightning.Trainer
+  _partial_: true
+#  gradient_clip_val: 200
+  max_epochs: 40
+  log_every_n_steps: 5
+  # track_grad_norm: 2
+#  callbacks:
+#    - _target_: pytorch_lightning.callbacks.EarlyStopping
+#      monitor: fewshot/validation_loss
+#      mode: min
+#      patience: 10
+#      min_delta: 0
+
+
+post_run_analysis_callbacks:
+
+  fewshot500_reallyheldout:
+    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
+    fewshot_head_model  : ${fewshot_head_model_lightning}
+    fewshot_trainer     : ${fewshot_trainer}
+    K                   : 500
+    ratio               : 0.3
+    seed                : 0
+    log_every_n_epochs  : 1
+    fewshot_trainer_epochs: 150
+    eval_type           : post_run
+
+  fewshot500_recon:
+    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
+    fewshot_head_model  : ${fewshot_head_model_lightning}
+    fewshot_trainer     : ${fewshot_trainer}
+    K                   : 500
+    ratio               : 0.3
+    seed                : 0
+    log_every_n_epochs  : 1
+    fewshot_trainer_epochs: 150
+    use_recon_as_targets: true
+    eval_type           : post_run
+
+  fewshot100_reallyheldout:
+    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
+    fewshot_head_model  : ${fewshot_head_model_lightning}
+    fewshot_trainer     : ${fewshot_trainer}
+    K                   : 100
+    ratio               : 0.3
+    seed                : 0
+    log_every_n_epochs  : 1
+    fewshot_trainer_epochs: 150
+    eval_type           : post_run
+
+  fewshot100_recon:
+    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
+    fewshot_head_model  : ${fewshot_head_model_lightning}
+    fewshot_trainer     : ${fewshot_trainer}
+    K                   : 100
+    ratio               : 0.3
+    seed                : 0
+    log_every_n_epochs  : 1
+    fewshot_trainer_epochs: 150
+    use_recon_as_targets: true
+    eval_type           : post_run
+
+
+  factors_PR:
+    _target_            : lfads_torch.callbacks.AnalysisCallback
+    analysis_func       :
+      _target_            : lfads_torch.post_run.analysis_functions.participation_ratio
+      _partial_           : true
+    log_name            : post_run/factors_participation_ratio
+    arg_names           :
+      - factors
+    log_every_n_epochs  : 1
+

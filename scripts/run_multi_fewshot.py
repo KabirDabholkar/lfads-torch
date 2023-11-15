@@ -14,7 +14,7 @@ from paths import runs_path
 
 # ---------- OPTIONS -----------
 PROJECT_STR = "lfads-torch-fewshot-benchmark"
-DATASET_STR = "nlb_mc_maze"
+DATASET_STR = "nlb_mc_rtt"
 RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
 OLD_RUN_TAG = '231110_002643_MultiFewshot'
 experiment_json_path = 'experiment_state-2023-11-10_00-26-47.json'
@@ -53,7 +53,7 @@ shutil.copyfile(__file__, RUN_DIR / Path(__file__).name)
 tune.run(
     tune.with_parameters(
         run_model,
-        config_path="../configs/multi_few_shot.yaml",
+        config_path="../configs/multi_few_shot_mc_rtt.yaml",
         do_train=False,
         do_posterior_sample=False,
         do_fewshot_protocol=False,

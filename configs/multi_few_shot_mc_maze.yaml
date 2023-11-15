@@ -1,0 +1,130 @@
+defaults:
+  - multi
+  - fewshot_head_model@fewshot_head_model_lightning: linear_lightning
+  - fewshot_head_model@fewshot_head_model_sklearn: linear_sklearn
+  - model@new_model: nlb_mc_maze_modoutfeatures_dropoutoptions
+  - datamodule@new_datamodule: nlb_mc_maze_doubleheldout
+  - override callbacks: mc_maze_callbacks
+  - _self_
+
+new_heldout_units: 23
+# old_heldout_units: ${eval:${model.readout.modules[0].out_features}-${model.encod_data_dim}}
+fewshot_neurons: 22
+
+log_every_n_epochs_fewshot : 10
+
+dropout_target : lfads_torch.modules.augmentations.CoordinatedDropoutChannelWise
+cd_rate : 0.3
+
+datamodule: ${new_datamodule}
+model: ${new_model}
+
+fewshot_trainer:
+  _target_: pytorch_lightning.Trainer
+  _partial_: true
+  max_epochs: 150
+  log_every_n_steps: 5
+  callbacks:
+    - _target_: pytorch_lightning.callbacks.EarlyStopping
+      monitor: fewshot/validation_loss_epoch
+      mode: min
+      patience: 15
+      min_delta: 0
+#    - _target_: pytorch_lightning.callbacks.ModelCheckpoint
+#      monitor: fewshot/validation_loss
+#      mode: min
+#      save_top_k: 1
+#      save_last: True
+#      verbose: False
+#      dirpath: lightning_checkpoints
+#      auto_insert_metric_name: False
+
+
+post_run_analysis_callbacks:
+  fewshot1000_reallyheldout:
+    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
+    fewshot_head_model  : ${fewshot_head_model_lightning}
+    fewshot_trainer     : ${fewshot_trainer}
+    K                   : 1000
+    ratio               : 0.3
+    seed                : 0
+    log_every_n_epochs  : 1
+    fewshot_trainer_epochs: 150
+    eval_type           : post_run
+
+  fewshot1000_recon:
+    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
+    fewshot_head_model  : ${fewshot_head_model_lightning}
+    fewshot_trainer     : ${fewshot_trainer}
+    K                   : 1000
+    ratio               : 0.3
+    seed                : 0
+    log_every_n_epochs  : 1
+    fewshot_trainer_epochs: 150
+    use_recon_as_targets: true
+    eval_type           : post_run
+
+  fewshot500_reallyheldout:
+    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
+    fewshot_head_model  : ${fewshot_head_model_lightning}
+    fewshot_trainer     : ${fewshot_trainer}
+    K                   : 500
+    ratio               : 0.3
+    seed                : 0
+    log_every_n_epochs  : 1
+    fewshot_trainer_epochs: 150
+    eval_type           : post_run
+
+  fewshot500_recon:
+    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
+    fewshot_head_model  : ${fewshot_head_model_lightning}
+    fewshot_trainer     : ${fewshot_trainer}
+    K                   : 500
+    ratio               : 0.3
+    seed                : 0
+    log_every_n_epochs  : 1
+    fewshot_trainer_epochs: 150
+    use_recon_as_targets: true
+    eval_type           : post_run
+
+  fewshot100_reallyheldout:
+    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
+    fewshot_head_model  : ${fewshot_head_model_lightning}
+    fewshot_trainer     : ${fewshot_trainer}
+    K                   : 100
+    ratio               : 0.3
+    seed                : 0
+    log_every_n_epochs  : 1
+    fewshot_trainer_epochs: 150
+    eval_type           : post_run
+
+  fewshot100_recon:
+    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
+    fewshot_head_model  : ${fewshot_head_model_lightning}
+    fewshot_trainer     : ${fewshot_trainer}
+    K                   : 100
+    ratio               : 0.3
+    seed                : 0
+    log_every_n_epochs  : 1
+    fewshot_trainer_epochs: 150
+    use_recon_as_targets: true
+    eval_type           : post_run
+
+
+  factors_PR:
+    _target_            : lfads_torch.callbacks.AnalysisCallback
+    analysis_func       :
+      _target_            : lfads_torch.post_run.analysis_functions.participation_ratio
+      _partial_           : true
+    log_name            : post_run/factors_participation_ratio
+    arg_names           :
+      - factors
+    log_every_n_epochs  : 1
+
+  raster_plot:
+    _target_: lfads_torch.callbacks.RasterPlot
+    log_every_n_epochs: 1
+
+  trajectory_plot:
+    _target_: lfads_torch.callbacks.TrajectoryPlot
+    log_every_n_epochs: 1
