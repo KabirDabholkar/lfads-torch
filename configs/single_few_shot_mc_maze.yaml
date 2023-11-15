@@ -2,9 +2,8 @@ defaults:
   - single
   - fewshot_head_model@fewshot_head_model_lightning: linear_lightning
   - fewshot_head_model@fewshot_head_model_sklearn: linear_sklearn
-#  - fewshot_head_model: linear_sklearn
-  - model@new_model: nlb_mc_maze_modoutfeatures_dropoutoptions
-  - datamodule@new_datamodule: nlb_mc_maze_doubleheldout
+  - override model      : nlb_mc_maze_modoutfeatures_dropoutoptions    # new directory hack to override model
+  - override datamodule : nlb_mc_maze_doubleheldout
   - override callbacks: mc_maze_callbacks
   - _self_
 
@@ -15,9 +14,6 @@ fewshot_neurons: 22
 log_every_n_epochs_fewshot: 10
 
 dropout_target : lfads_torch.modules.augmentations.CoordinatedDropoutChannelWise
-
-datamodule: ${new_datamodule}
-model: ${new_model}
 
 fewshot_protocol:
   use_best_ckpt: True

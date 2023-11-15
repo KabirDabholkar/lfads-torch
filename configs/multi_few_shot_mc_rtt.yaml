@@ -2,9 +2,9 @@ defaults:
   - multi
   - fewshot_head_model@fewshot_head_model_lightning: linear_lightning
   - fewshot_head_model@fewshot_head_model_sklearn: linear_sklearn
-  - model@new_model           : nlb_mc_rtt_modoutfeatures_dropoutoptions
-  - datamodule@new_datamodule : nlb_mc_rtt_doubleheldout
-  - override callbacks        : mc_rtt_callbacks
+  - override model       : nlb_mc_rtt_modoutfeatures_dropoutoptions
+  - override datamodule  : nlb_mc_rtt_doubleheldout
+  - override callbacks   : mc_rtt_callbacks
   - _self_
 
 new_heldout_units: 16
