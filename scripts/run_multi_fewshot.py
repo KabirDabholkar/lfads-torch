@@ -18,10 +18,10 @@ DATASET_STR = "nlb_mc_rtt"
 RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
 OLD_RUN_TAG = '231110_002643_MultiFewshot'
 experiment_json_path = 'experiment_state-2023-11-10_00-26-47.json'
-
+load_old_checkpoints = False
 
 RUN_DIR     = Path(runs_path) / PROJECT_STR / DATASET_STR / RUN_TAG
-OLD_RUN_DIR = Path(runs_path) / PROJECT_STR / DATASET_STR / OLD_RUN_TAG
+OLD_RUN_DIR = RUN_DIR
 
 # ------------------------------
 
@@ -37,12 +37,14 @@ mandatory_overrides = {
 experiment_json_path_full = OLD_RUN_DIR / experiment_json_path
 trial_ids = None
 print(experiment_json_path_full)
-if os.path.exists(experiment_json_path_full):
-    with open(experiment_json_path_full) as f:
-        experiment_data = json.load(f)
-    trial_ids = [json.loads(experiment)['trial_id'] for experiment in experiment_data['checkpoints']]
-else:
-    raise FileNotFoundError()
+if load_old_checkpoints:
+    OLD_RUN_DIR = Path(runs_path) / PROJECT_STR / DATASET_STR / OLD_RUN_TAG
+    if os.path.exists(experiment_json_path_full):
+        with open(experiment_json_path_full) as f:
+            experiment_data = json.load(f)
+        trial_ids = [json.loads(experiment)['trial_id'] for experiment in experiment_data['checkpoints']]
+    else:
+        raise FileNotFoundError()
 
 RUN_DIR.mkdir(parents=True,exist_ok=True)
 # Copy this script into the run directory
@@ -54,9 +56,10 @@ tune.run(
     tune.with_parameters(
         run_model,
         config_path="../configs/multi_few_shot_mc_rtt.yaml",
-        do_train=False,
+        do_train=True,
         do_posterior_sample=False,
         do_fewshot_protocol=False,
+        do_post_run_analysis=False,
         run_dir = OLD_RUN_DIR,
         trial_ids = trial_ids,
         load_best = False

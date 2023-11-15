@@ -33,4 +33,5 @@ run_model(
     do_train=True,
     do_posterior_sample=False,
     do_fewshot_protocol=False,
+    do_post_run_analysis=False,
 )
