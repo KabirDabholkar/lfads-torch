@@ -12,6 +12,7 @@ from omegaconf import OmegaConf, open_dict
 from ray import tune
 from functools import partial
 from typing import Optional
+import pickle as pkl
 
 from .utils import flatten
 
@@ -106,22 +107,37 @@ def run_model(
             model = model.to("cuda")
         call(config.posterior_sampling.fn, model=model, datamodule=datamodule)
 
-    # Run few shot
+    # ### Run few shot
     # if do_fewshot_protocol:
-    #     # Temporary workaround for PTL step-resuming bug
+    #     if "single" not in str(config_path) and run_dir:
+    #         tune_trial_name = tune.get_trial_name()
+    #         tune_trial_name_number = str(tune_trial_name).split('_')[-1]
+
+    #         # runs = os.listdir( run_dir )
+    #         # runs = [r for r in runs if 'run_model' in r]
+    #         print(trial_ids)
+    #         run_name = 'run_model_' + [r for r in trial_ids if tune_trial_name_number in r][0]
+    #         checkpoint_dir = Path(run_dir) / run_name / 'lightning_checkpoints'
+
+    #     print('checkpoint_dir',checkpoint_dir)
+
     #     if checkpoint_dir:
-    #         ckpt = torch.load(ckpt_path)
-    #         trainer.fit_loop.epoch_loop._batches_that_stepped = ckpt["global_step"]
-    #
+    #         ckpt_path = os.path.join(checkpoint_dir, "last.ckpt")
+    #         if load_best:
+    #             ckpt_pattern = os.path.join(checkpoint_dir, "*.ckpt")
+    #             ckpt_path = max(glob(ckpt_pattern), key=os.path.getctime)
+    #         model.load_state_dict(torch.load(ckpt_path)["state_dict"])
+
+    
     #     trainer = instantiate(
     #         config.trainer,
     #         callbacks=[instantiate(c) for c in config.callbacks.values()],
     #         logger=[instantiate(lg) for lg in config.logger.values()],
     #         gpus=int(torch.cuda.is_available()),
     #     )
-    #
+    
     #     fewshot_head_model = instantiate(
-    #         config.fewshot_head_model
+    #         config.fewshot_head_model_lightning
     #     )
     #     fewshot_trainer = instantiate(
     #         config.fewshot_trainer
@@ -144,8 +160,11 @@ def run_model(
 
             # runs = os.listdir( run_dir )
             # runs = [r for r in runs if 'run_model' in r]
+            print(trial_ids)
             run_name = 'run_model_' + [r for r in trial_ids if tune_trial_name_number in r][0]
             checkpoint_dir = Path(run_dir) / run_name / 'lightning_checkpoints'
+        elif run_dir is None:
+            checkpoint_dir = Path(tune.get_trial_dir()) / 'lightning_checkpoints'
 
         print('checkpoint_dir',checkpoint_dir)
 
@@ -178,4 +197,14 @@ def run_model(
         trainer.fit(
             model=model,
             datamodule=datamodule,
+        )
+
+        # print('model_outputs_valid',model.model_outputs_valid)
+        # print('model_outputs_valid.factors.shape',torch.concat([d.factors for d in model.model_outputs_valid]).shape)
+        outputs = model.model_outputs_valid
+        factors = torch.concat([o[0].factors for o in outputs])
+        print(factors.shape)
+        torch.save(
+            factors,
+            Path(tune.get_trial_dir()) / 'model_outputs_valid'
         )

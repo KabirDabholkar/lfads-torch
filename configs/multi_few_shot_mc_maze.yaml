@@ -16,6 +16,9 @@ log_every_n_epochs_fewshot : 10
 dropout_target : lfads_torch.modules.augmentations.CoordinatedDropoutChannelWise
 cd_rate : 0.3
 
+trainer:
+  max_epochs  : 1000
+
 fewshot_trainer:
   _target_: pytorch_lightning.Trainer
   _partial_: true
@@ -35,6 +38,13 @@ fewshot_trainer:
 #      verbose: False
 #      dirpath: lightning_checkpoints
 #      auto_insert_metric_name: False
+
+fewshot_protocol:
+  use_best_ckpt: True
+  fn:
+    _target_: lfads_torch.post_run.fewshot_analysis.run_fewshot_analysis
+    # filename: lfads_fewshot_output.h5
+    # num_samples: 50
 
 
 post_run_analysis_callbacks:
