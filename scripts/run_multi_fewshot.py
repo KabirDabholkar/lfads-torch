@@ -22,8 +22,14 @@ RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
 
 # load small mc_maze test checkpoints
 # num_samples = 1
-OLD_RUN_TAG = '240314_172554_MultiFewshot' #'240314_141453_MultiFewshot'
-experiment_json_path = 'experiment_state-2024-03-14_17-25-57.json'  #'experiment_state-2024-03-14_14-14-57.json'
+
+#### first set of 200 models #####
+# OLD_RUN_TAG = '240314_172554_MultiFewshot' 
+# experiment_json_path = 'experiment_state-2024-03-14_17-25-57.json'  #'experiment_state-2024-03-14_14-14-57.json'
+
+#### second set of 200 models #####
+OLD_RUN_TAG = '240318_144734_MultiFewshot'  
+experiment_json_path = 'experiment_state-2024-03-18_14-47-38.json'
 load_old_checkpoints = True
 
 RUN_DIR     = Path(runs_path) / PROJECT_STR / DATASET_STR / RUN_TAG
@@ -64,7 +70,7 @@ shutil.copyfile(__file__, RUN_DIR / Path(__file__).name)
 tune.run(
     tune.with_parameters(
         run_model,
-        config_path="../configs/multi_few_shot_mc_maze.yaml",
+        config_path="../configs/multi_few_shot_original_heldout_mc_maze.yaml",
         do_train=False,
         do_posterior_sample=False,
         do_fewshot_protocol=False,
@@ -78,12 +84,13 @@ tune.run(
     name=RUN_DIR.name,
     config={
         **mandatory_overrides,
-        "dropout_target" : tune.choice([
-            'lfads_torch.modules.augmentations.CoordinatedDropout',
-            'lfads_torch.modules.augmentations.CoordinatedDropoutChannelWise',
-        ]),
+        # "dropout_target" : tune.choice([
+        #     'lfads_torch.modules.augmentations.CoordinatedDropout',
+        #     'lfads_torch.modules.augmentations.CoordinatedDropoutChannelWise',
+        # ]),
         "cd_rate" : tune.uniform(0.05, 0.4),
-        "model.dropout_rate" : tune.uniform(0.0, 0.6),
+        # "model.dropout_rate" : tune.uniform(0.0, 0.6),
+        "model.dropout_rate" : tune.uniform(0.0, 0.25),
         "model.kl_co_scale"  : tune.loguniform(1e-6, 1e-4),
         "model.kl_ic_scale"  : tune.loguniform(1e-6, 1e-3),
         "model.l2_gen_scale" : tune.loguniform(1e-4, 1e0),

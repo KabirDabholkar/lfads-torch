@@ -1,0 +1,6 @@
+decoding:
+  regression_model:
+    _target_: sklearn.linear_model.LinearRegression
+  metric:
+    _target_: sklearn.metrics.r2_score
+    _partial_: true

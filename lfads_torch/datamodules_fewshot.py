@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union,Literal,Iterable,Optional
 
 import h5py
 import numpy as np
@@ -95,6 +95,63 @@ def attach_tensors(datamodule, data_dicts: list[dict], extra_keys: list[str] = [
         datamodule.test_data = all_test_data
         datamodule.test_ds = [SessionDataset(*test_data) for test_data in all_test_data]
 
+def split_datadict2(
+        data_dict,
+        new_num_encod_neurons: Optional[int] = None,
+        really_heldout_neuron_indices: Iterable[int] = [],
+    ):
+    
+    # use recon_data to start with
+    # split into new_recon and really_heldout
+    # define encod_data as the appropriate split from new_recon
+    # treats psth_data like recon_data
+    
+
+    num_encod_neurons = data_dict["train_encod_data"].shape[2]
+    num_recon_neurons = data_dict["train_recon_data"].shape[2]
+    new_num_encod_neurons  = num_encod_neurons if new_num_encod_neurons is None else new_num_encod_neurons
+    # num_heldout_neurons = num_recon_neurons - num_encod_neurons    
+
+    updates_dict = {}
+    for k, v in data_dict.items():
+        if 'recon' in k:
+            full_component_key = k
+            recon_tensor = v
+            fewshot_key = full_component_key.replace('recon', 'fewshot')
+            select_for_really_heldout = (np.arange(recon_tensor.shape[2])[:,None] == really_heldout_neuron_indices[None,:]).any(axis=1)
+            select_for_new_recon = ~select_for_really_heldout
+            really_heldout = recon_tensor[...,select_for_really_heldout]
+            new_recon = recon_tensor[...,select_for_new_recon]
+            # print(k,new_recon.shape,select_for_new_recon.shape,select_for_new_recon.sum())
+            updates_dict[fewshot_key] = really_heldout
+            updates_dict[full_component_key] = new_recon
+    
+    data_dict.update(updates_dict)
+    
+    updates_dict = {}
+    for k, v in data_dict.items():
+        if 'encod' in k:
+            encod_key = k
+            relevant_recon_key = encod_key.replace('encod','recon')
+            relevant_recon = data_dict[relevant_recon_key]
+            encod_neurons, _ = np.split(
+                np.split(relevant_recon,[v.shape[1]],axis=1)[0], 
+                [new_num_encod_neurons], 
+                axis=2
+            )
+            updates_dict[encod_key] = encod_neurons
+            
+    if 'psth' in data_dict.keys():
+        psth_tensor = data_dict['psth']
+        select_for_really_heldout = (np.arange(psth_tensor.shape[2])[:,None] == really_heldout_neuron_indices[None,:]).sum(axis=1)
+        select_for_new_recon = ~select_for_really_heldout
+        updates_dict['psth'] = psth_tensor[...,select_for_new_recon]
+
+    data_dict.update(updates_dict)
+
+    for k, v in data_dict.items():
+        print(k, v.shape)
+    return data_dict
 
 
 def split_datadict(data_dict, split_keep_first, num_new_heldout_neurons=None):
@@ -131,22 +188,62 @@ def split_datadict(data_dict, split_keep_first, num_new_heldout_neurons=None):
         updates_dict['psth'] = data_dict['psth'][...,:num_new_recon_neurons]
     data_dict.update(updates_dict)
 
-    # updates_dict = {}
-    # for k, v in data_dict.items():
-    #     if "recon_data" in k:
-    #         k_ = k.replace("recon", "few-shot")
-    #         split_at = (
-    #             (v.shape[2] // 2)
-    #             if split_keep_first
-    #             else (v.shape[2] - v.shape[2] // 2)
-    #         )
-    #         parts = np.split(v, [split_at], axis=2)
-    #         updates_dict[k] = parts[part_to_keep]
-    #         updates_dict[k_] = parts[part_to_move]
-    data_dict.update(updates_dict)
     for k, v in data_dict.items():
         print(k, v.shape)
     return data_dict
+
+class DoubleHeldoutDataModule2(BasicDataModule):
+    def __init__(
+        self,
+        data_paths: list[str],
+        batch_keys: list[str] = [],
+        attr_keys: list[str] = [],
+        batch_size: int = 64,
+        reshuffle_tv_seed: int = None,
+        reshuffle_tv_ratio: float = None,
+        sv_rate: float = 0.0,
+        sv_seed: int = 0,
+        dm_ic_enc_seq_len: int = 0,
+        really_heldout_neuron_indices: Iterable[int] = [],
+        new_num_encod_neurons : Union[int,None] = None,
+    ):
+        super().__init__(
+            data_paths,
+            batch_keys=batch_keys,
+            attr_keys=attr_keys,
+            batch_size=batch_size,
+            reshuffle_tv_seed=reshuffle_tv_seed,
+            reshuffle_tv_ratio=reshuffle_tv_ratio,
+            sv_rate=sv_rate,
+            sv_seed=sv_seed,
+            dm_ic_enc_seq_len=dm_ic_enc_seq_len,
+        )
+        self.save_hyperparameters()
+
+    def setup(self, stage=None):
+        hps = self.hparams
+        data_dicts = []
+        for data_path in hps.data_paths:
+            # Load data arrays from the file
+            with h5py.File(data_path, "r") as h5file:
+                data_dict = {k: v[()] for k, v in h5file.items()}
+            # Reshuffle the training / validation split
+            if hps.reshuffle_tv_seed is not None:
+                data_dict = reshuffle_train_valid(
+                    data_dict, hps.reshuffle_tv_seed, hps.reshuffle_tv_ratio
+                )
+            split_datadict2(
+                data_dict,
+                new_num_encod_neurons = self.hparams.new_num_encod_neurons,
+                really_heldout_neuron_indices = self.hparams.really_heldout_neuron_indices,
+            )
+
+            data_dicts.append(data_dict)
+        print('hps:',hps)
+        # Attach data to the datamodule
+        attach_tensors(self, data_dicts, extra_keys=hps.batch_keys)
+        for attr_key in hps.attr_keys:
+            setattr(self, attr_key, data_dict[attr_key])
 
 
 class DoubleHeldoutDataModule(BasicDataModule):

@@ -162,10 +162,10 @@ class FewshotTrainTest(pl.Callback):
 
         _, self.n_obs, self.n_heldin = input_data_sample.shape
 
-        factors_train = torch.concat([t[0].factors for t in outputs_train]) [:, :self.n_obs, :].detach()
+        factors_train = torch.concat([t[0].factors for t in outputs_train])[:, :self.n_obs, :].detach()
         factors_valid = torch.concat([t[0].factors for t in outputs_valid])[:, :self.n_obs, :].detach()
 
-        fewshot_neurons_train = torch.concat([l[0][1][1] for l in list(batches_train)])[:,:self.n_obs,:].detach()
+        fewshot_neurons_train = torch.concat([l[0][1][1] for l in list(batches_train)])[:, :self.n_obs, :].detach()
         fewshot_neurons_valid = torch.concat([l[0][1][1] for l in list(batches_valid)])[:, :self.n_obs, :].detach()
 
 

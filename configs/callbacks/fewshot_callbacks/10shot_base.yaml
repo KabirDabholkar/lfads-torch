@@ -1,0 +1,8 @@
+defaults:
+  - fewshot_base
+  - _self_
+
+fewshot_head_model  : ${fewshot_head_model_lightning}
+fewshot_trainer     : ${fewshot_trainer}
+K                   : 10
+fewshot_trainer_epochs: ${10shot_trainer_epochs}

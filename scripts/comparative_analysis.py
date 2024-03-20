@@ -9,26 +9,31 @@ from multiprocessing import Pool
 import numpy as np
 from itertools import product
 from tqdm import tqdm
+from sklearn.decomposition import PCA
 # from hydra.utils import instantiate
 from hydra.utils import instantiate
 import seaborn as sns
+import torch
 
 from copy import deepcopy
 
 import matplotlib as mpl
+
 
 mpl.rcParams['text.usetex'] = True
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["mathtext.fontset"] = "dejavuserif"
 mpl.rcParams['text.latex.preamble'] = r'\usepackage{amsmath}'
 
-CONFIG_PATH = "configs"
+CONFIG_PATH = "../configs"
 # CONFIG_NAME = "config"
 # CONFIG_NAME = "config_cohmm_mc_maze"
 # path_to_models = '/home/kabird/ray_results/all_models_validated_v2/teacher_state4_poisson_partial_eps0.01_length35/combined_traintrials1600'
 
 CONFIG_NAME = "comparative_config"
-path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_maze/240316_144215_MultiFewshot'
+# path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_maze/240316_144215_MultiFewshot'
+# path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_maze/240318_144734_MultiFewshot'
+path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_maze/240319_085230_MultiFewshot'
 dataframe_file_name = 'latents_dataframe.pkl'
 threshold = 2e-3
 
@@ -74,18 +79,47 @@ def load_and_filternan_models_with_csvs():
 def load_model_datas():
     all_files = os.listdir(path_to_models)
 
-    model_files = [f for f in all_files if (f[-4] != '.' and f[-3] != '.')]
-    
-    models = []
+    model_files = [f for f in all_files if f.startswith('run_model')]
+    # print(model_files)
     model_datas = []
     for f in model_files:
         full_path = os.path.join(path_to_models, f,'csv_logs','metrics.csv')
-        model_data = pd.read_csv(full_path) if os.path.exists(full_path) else None
-        model_datas.append(model_data)
-    model_datas = pd.concat(model_datas, axis=0).reset_index()
+        # print(full_path,os.path.exists(full_path))
+        if os.path.exists(full_path):
+            model_data = pd.read_csv(full_path,index_col=0) 
+            model_data = model_data.iloc[0:1]
+            model_data['model_id'] = f
+            model_datas.append(model_data)
+    model_datas_ = pd.concat(model_datas,axis=0).reset_index()
+    # model_datas_ = model_datas_.T.T
+    # print(model_datas_.shape,len(model_datas))
+    # print(pd.concat(model_datas).shape)
+    # print(model_datas_.T.shape)
+    # print(model_datas_['valid/1000shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_reallyheldout_bps'])
+    print(model_datas_)
     csv_path = os.path.join(path_to_models, 'concat_model_data.csv')
-    model_datas.to_csv(csv_path)
+    model_datas_.to_csv(csv_path)
 
+def load_latents(dataframe):
+    # csv_path = os.path.join(path_to_models, 'concat_model_data.csv')
+    # D = pd.read_csv(csv_path)
+
+    all_files = dataframe['model_id'] #os.listdir(path_to_models)
+
+    model_files = [f for f in all_files if f.startswith('run_model')]
+    
+    
+    model_datas = []
+    for f in model_files:
+        full_path = os.path.join(path_to_models, f,'model_outputs_valid')
+        if os.path.exists(full_path):
+            numpy_array = torch.load(full_path).cpu().numpy()
+            model_datas.append(numpy_array)
+        else:
+            model_datas.append(None)
+    dataframe['train_latents'] = [(m[:300] if m is not None else None) for m in model_datas]
+    dataframe['test_latents'] = [(m[300:]  if m is not None else None) for m in model_datas]
+    return dataframe
 
 
 @hydra.main(version_base='1.3', config_path=CONFIG_PATH, config_name=CONFIG_NAME)
@@ -193,59 +227,29 @@ def score_model(model, dataset, metric, predict_method):
 
 @hydra.main(version_base='1.3', config_path=CONFIG_PATH, config_name=CONFIG_NAME)
 def cross_decoding(cfg):
-    omegaconf_resolvers()
+    # omegaconf_resolvers()
 
-    saveloc = os.path.join(path_to_models, dataframe_file_name)
-    with open(saveloc, 'rb') as f:
-        latents_dataframe = pkl.load(f)
+    saveloc = os.path.join(path_to_models, 'concat_model_data.csv')
+    latents_dataframe = pd.read_csv(saveloc)
+    latents_dataframe = load_latents(latents_dataframe)
 
-    best_latents_dataframe = latents_dataframe[latents_dataframe.co_bps > (latents_dataframe.co_bps.max() - 1e-2)]
-
-    # best_latents_dataframe = best_latents_dataframe.head(2)
+    best_latents_dataframe = latents_dataframe[latents_dataframe['valid/co_bps'] > (latents_dataframe['valid/co_bps'].max() - 1e-2)]
+    
+    # best_latents_dataframe = best_latents_dataframe.head(20)
 
     n_models = len(best_latents_dataframe)
 
     print('n_models:', n_models)
-    # scores = np.zeros((n_models,n_models))
-
-    # def regression_from_to(i,j):
-    #     X = best_latents_dataframe.iloc[i]['train_latents']
-    #     y = best_latents_dataframe.iloc[j]['train_latents']
-    #     X,y = [thing.reshape(-1,thing.shape[-1]) for thing in [X,y]]
-    #     print(cfg.decoding)
-    #     if hasattr(cfg.decoding, 'preprocess_target'):
-    #         y = instantiate(cfg.decoding.preprocess_target)(y)
-    #     # X = np.log(X)
-    #     # from sklearn.linear_model import LinearRegression
-    #     model = instantiate(cfg.decoding.regression_model)
-    #     model.fit(
-    #         X,
-    #         y
-    #     )
-
-    #     X = best_latents_dataframe.iloc[i]['test_latents']
-    #     y = best_latents_dataframe.iloc[j]['test_latents']
-    #     X, y = [thing.reshape(-1, thing.shape[-1]) for thing in [X, y]]
-    #     X = np.log(X)
-    #     pred_y = getattr(model, cfg.decoding.predict_method)(X)
-
-    #     metric = instantiate(cfg.decoding.metric)
-    #     score = np.stack([metric(
-    #         y[sample_id],
-    #         pred_y[sample_id]
-    #     ) for sample_id in range(pred_y.shape[0])]).mean()
-    #     # scores[i,j] = score
-    #     return score
 
     train_latents = best_latents_dataframe['train_latents'].values
     train_latents_r = [thing.reshape(-1, thing.shape[-1]) for thing in train_latents]
     if hasattr(cfg.decoding, 'preprocess_target'):
         preprocess = instantiate(cfg.decoding.preprocess_target)
-        train_latents_sampled = [preprocess(thing) for thing in train_latents_r]
+        train_latents_r = [preprocess(thing) for thing in train_latents_r]
     train_datasets = []
     for i, j in tqdm(list(product(range(n_models), range(n_models)))):
         train_datasets.append(
-            (train_latents_r[i], train_latents_sampled[j])
+            (train_latents_r[i], train_latents_r[j])
         )
     test_latents = best_latents_dataframe['test_latents'].values
     test_latents_r = [thing.reshape(-1, thing.shape[-1]) for thing in test_latents]
@@ -272,6 +276,17 @@ def cross_decoding(cfg):
         )
 
     print(len(scores))
+    score_dataframe = pd.DataFrame({
+        'from_to_index' : list(product(range(n_models), range(n_models))),
+        'score' : scores,
+    })
+    score_dataframe[['from','to']]=pd.DataFrame(score_dataframe['from_to_index'].to_list(),index=score_dataframe.index)
+    print(score_dataframe)
+    score_dataframe['from_id'] = best_latents_dataframe['model_id'].iloc[score_dataframe['from']].values
+    score_dataframe['to_id'] = best_latents_dataframe['model_id'].iloc[score_dataframe['to']].values
+    saveloc = os.path.join(path_to_models, 'cross_decoding_scores.csv')
+    score_dataframe.to_csv(saveloc)
+    
     scores = np.array(scores).reshape(n_models, n_models)
     saveloc = os.path.join(path_to_models, 'cross_decoding_scores_parallel')
     np.save(saveloc, scores)
@@ -286,6 +301,10 @@ def plotting_histogram():
     ax.set_xlabel(metric_name)
     fig.savefig(os.path.join(path_to_models, 'co_bps_hist.png'), dpi=250)
 
+    
+    fig.tight_layout()
+    fig.savefig(os.path.join(path_to_models, 'cobps_heldin_colsums.png'), dpi=300)
+
     fig, ax = plt.subplots()
     sns.scatterplot(
         x='valid/co_bps',
@@ -296,6 +315,20 @@ def plotting_histogram():
     ax.set_ylabel(r'$k=1000$-shot co_bps to really held out')
     ax.set_xlabel('co_bps')
     fig.savefig(os.path.join(path_to_models, 'co_bps_vs_1000shot.png'), dpi=250)
+
+    fig, ax = plt.subplots()
+    sns.scatterplot(
+        x='valid/co_bps',
+        y=f'debugging/val_{1000}shot_co_bps_recon_truereadout',
+        hue='hp/dropout_rate',
+        data=latents_dataframe,
+        ax=ax
+    )
+    ax.plot([0.3,0.425],[0.3,0.425],ls='dashed',c='black')
+    ax.set_aspect('equal')
+    ax.set_ylabel('co_bps on held-in neurons')
+    ax.set_xlabel('co_bps on held-out neurons')
+    fig.savefig(os.path.join(path_to_models, 'co_bps_heldin_heldout.png'), dpi=250)
 
 @hydra.main(version_base='1.3', config_path=CONFIG_PATH, config_name=CONFIG_NAME)
 def plotting(cfg):
@@ -362,25 +395,250 @@ def plot_cross_decoding_scores():
     print(scores.shape)
 
     fig, ax = plt.subplots()
-    im = ax.imshow(scores)
+    im = ax.imshow(1-scores)
     ax.set_ylabel('input model')
     ax.set_xlabel('target model')
-    fig.colorbar(im, ax=ax)
+    fig.colorbar(im, ax=ax, label=r'$1-R^2$')
+    fig.tight_layout()
     fig.savefig(os.path.join(path_to_models, 'cross_decoding.png'), dpi=300)
 
     plt.close(fig)
 
-    fig, ax = plt.subplots()
-    ax.hist(np.log10(scores.flatten()), bins=30)
-    fig.savefig(os.path.join(path_to_models, 'scores_histogram.png'))
+    # fig, ax = plt.subplots()
+    # ax.hist(np.log10(scores.flatten()), bins=30)
+    # fig.savefig(os.path.join(path_to_models, 'scores_histogram.png'))
 
 
-def convert_cross_decoding_scores_to_matlab():
+def plot_kshot_and_crossdecoding():
     saveloc = os.path.join(path_to_models, 'cross_decoding_scores_parallel.npy')
     scores = np.load(saveloc)
-    print(scores)
-    saveloc = os.path.join(path_to_models, 'cross_decoding_scores.mat')
-    scipy.io.savemat(saveloc, {'scores': scores})
+    
+    saveloc = os.path.join(path_to_models, 'concat_model_data.csv')
+    latents_dataframe = pd.read_csv(saveloc)
+    latents_dataframe['model_id'] = latents_dataframe['model_id'].str.split('_').str[-1]
+    latents_dataframe.index = latents_dataframe['model_id']
+    
+    # additionally condition on good heldin co_bps
+    # latents_dataframe = latents_dataframe[latents_dataframe[f'debugging/val_{1000}shot_co_bps_recon_truereadout']>0.36]
+    latents_dataframe = latents_dataframe[latents_dataframe['valid/co_bps'] > (latents_dataframe['valid/co_bps'].max() - 1e-2)]
+    # latents_dataframe = latents_dataframe[latents_dataframe.co_bps > (latents_dataframe.co_bps.max() - 1e-2)]
+
+    saveloc = os.path.join(path_to_models, 'cross_decoding_scores.csv')
+    score_dataframe = pd.read_csv(saveloc)
+    score_dataframe['from_id'] = score_dataframe['from_id'].str.split('_').str[-1]
+    score_dataframe['to_id']   = score_dataframe['to_id'].str.split('_').str[-1]
+    square_score_dataframe = score_dataframe.drop(['from_to_index','from','to'],axis=1).pivot(
+        index = 'from_id',
+        columns = 'to_id',
+        values = 'score'
+    )
+    print(len(latents_dataframe.index.values))
+    select_ids = latents_dataframe.index.values
+    selection = square_score_dataframe.index.isin(select_ids)
+    print(square_score_dataframe)
+    square_score_dataframe = square_score_dataframe.loc[selection,:].loc[:,selection]
+    square_dist_dataframe = 1 - np.array(square_score_dataframe.values)
+    col_sums = square_dist_dataframe.mean(axis=0)
+    
+
+    select_latents_dataframe = latents_dataframe.loc[list(square_score_dataframe.index.values)]
+    kshot_reallyheldout = select_latents_dataframe['valid/1000shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_reallyheldout_bps'].values
+    kshot_reallyheldout = select_latents_dataframe['valid/100shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_reallyheldout_bps'].values
+    kshot_heldout = select_latents_dataframe['post_run/100shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_co_bps']
+    co_bps = select_latents_dataframe['valid/co_bps'].values
+
+    co_bps_heldin = select_latents_dataframe[f'debugging/val_{1000}shot_co_bps_recon_truereadout']
+    dropout_rate = select_latents_dataframe['hp/dropout_rate']
+
+    Krange = [100,500,1000]
+    Kshot_vs_Krange = np.stack([
+        select_latents_dataframe[f'valid/{k}shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_reallyheldout_bps'].values
+        for k in Krange
+    ])
+    Kshot_vs_Krange = np.stack([
+        select_latents_dataframe[f'post_run/{k}shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_co_bps'].values
+        for k in Krange
+    ])
+
+    # print(kshot)
+    # print(col_sums.shape,kshot.shape,square_score_dataframe.index.values.shape,latents_dataframe.loc[list(square_score_dataframe.index.values)[:2]].shape)
+    # print(square_score_dataframe.index.values)
+    # print(latents_dataframe.loc[list(square_score_dataframe.index.values)[:2]])
+    # print(latents_dataframe.shape)
+    fig,ax = plt.subplots()
+    ax.scatter(col_sums,kshot_reallyheldout)
+    # ax.scatter(col_sums,kshot_heldout)
+    # ax.scatter(col_sums,co_bps)
+    ax.set_xlabel(r'Column sum of $1-R^2$')
+    ax.set_ylabel(r'$k=100$-shot co_bps to really held out')
+    
+    fig.tight_layout()
+    fig.savefig(os.path.join(path_to_models, 'kshot_colsums.png'), dpi=300)
+    plt.close()
+
+    fig,ax = plt.subplots()
+    ax.scatter(col_sums,co_bps)
+    # ax.scatter(col_sums,kshot_heldout)
+    # ax.scatter(col_sums,co_bps)
+    ax.set_xlabel(r'Column sum of $1-R^2$')
+    ax.set_ylabel(r'co_bps on held-out neurons')
+
+    
+    fig.tight_layout()
+    fig.savefig(os.path.join(path_to_models, 'co_bps_colsums.png'), dpi=300)
+    plt.close()
+
+
+    fig,ax = plt.subplots()
+    ax.scatter(col_sums,kshot_heldout)
+    # ax.scatter(col_sums,co_bps)
+    ax.set_xlabel(r'Column sum of $1-R^2$')
+    ax.set_ylabel(r'$100$-shot on held-out neurons')
+    
+    fig.tight_layout()
+    fig.savefig(os.path.join(path_to_models, 'kshot-heldout_colsums.png'), dpi=300)
+    plt.close()
+
+
+    fig,ax = plt.subplots()
+    ax.scatter(col_sums,co_bps_heldin)
+    # ax.scatter(col_sums,co_bps)
+    ax.set_xlabel(r'Column sum of $1-R^2$')
+    ax.set_ylabel(r'co_bps on held-in neurons')
+    
+    fig.tight_layout()
+    fig.savefig(os.path.join(path_to_models, 'cobps_heldin_colsums.png'), dpi=300)
+    plt.close()
+
+
+
+    fig,ax = plt.subplots()
+    ax.scatter(kshot_reallyheldout,co_bps_heldin)
+    # ax.scatter(col_sums,co_bps)
+    ax.set_xlabel(r'$k=1000$-shot co_bps to really held out')
+    ax.set_ylabel(r'co_bps on held-in neurons')
+    
+    fig.tight_layout()
+    fig.savefig(os.path.join(path_to_models, 'cobps_heldin_1000shot.png'), dpi=300)
+    plt.close()
+
+
+    fig,ax = plt.subplots()
+    ax.plot(Krange,Kshot_vs_Krange)
+    # ax.scatter(col_sums,kshot_heldout)
+    # ax.scatter(col_sums,co_bps)
+    ax.set_xlabel(r'k')
+    ax.set_ylabel(r'$k$-shot co_bps')
+    ax.set_xscale('log')
+    
+    fig.tight_layout()
+    fig.savefig(os.path.join(path_to_models, 'kshot_vs_krange.png'), dpi=300)
+    plt.close()
+
+def check_extremes():
+    saveloc = os.path.join(path_to_models, 'concat_model_data.csv')
+    latents_dataframe = pd.read_csv(saveloc)
+    latents_dataframe = load_latents(latents_dataframe)
+
+    latents_dataframe.index = latents_dataframe['model_id'].str.split('_').str[-1]
+
+    
+
+    saveloc = os.path.join(path_to_models, 'cross_decoding_scores.csv')
+    score_dataframe = pd.read_csv(saveloc)
+    square_score_dataframe = score_dataframe.drop(['from_to_index','from','to'],axis=1).pivot(
+        index = 'from_id',
+        columns = 'to_id',
+        values = 'score'
+    )
+    colmean_sorted = (square_score_dataframe.apply(lambda x:1-x)).mean(axis=0).sort_values(ascending=True)
+    min_colmean = colmean_sorted.head(1) # what we think should be the good model
+    max_colmean = colmean_sorted.tail(1) # what we think should be the bad model
+    print(
+        min_colmean.index,
+        max_colmean.index,
+        colmean_sorted
+    )
+    print(
+        'From min to max col-mean model 1-R2',1-square_score_dataframe.loc[min_colmean.index,max_colmean.index].values,'\n'
+        'From max to min col-mean model 1-R2',1-square_score_dataframe.loc[max_colmean.index,min_colmean.index].values
+    )
+
+    # n_components = 20
+    # num_trials_to_plot = 5
+    # for name,model_id in zip(['min_colmean','max_colmean'],[min_colmean.index,max_colmean.index]):
+    #     id = model_id.values[0].split('_')[-1]
+    #     # print([thing.shape for thing in latents_dataframe.loc[id][['train_latents','test_latents']].values])
+    #     latents = np.concatenate(latents_dataframe.loc[id][['train_latents','test_latents']].values,axis=0)
+    #     P = PCA(n_components=n_components)
+    #     latents_pcproj = P.fit_transform(latents.reshape(-1,latents.shape[-1])).reshape(*latents.shape[:2],n_components)
+
+    #     fig = plt.figure()
+    #     ax = fig.add_subplot()#projection='3d')
+    #     print([t.shape for t in latents_pcproj[...,:3].swapaxes(0,-1).swapaxes(1,2)])
+    #     for i in range(num_trials_to_plot):
+    #         ax.plot(latents_pcproj[i,...,0].T,latents_pcproj[i,...,1].T,lw=1.4,alpha=0.7)#,latents_pcproj[...,2])
+    #         ax.scatter(latents_pcproj[i,0,0],latents_pcproj[i,0,1],c='green',s=10)
+    #         ax.scatter(latents_pcproj[i,-1,0],latents_pcproj[i,-1,1],c='red',s=10)
+    #     ax.axis('off')
+    #     saveloc = os.path.join(path_to_models, name+'_PCA.png')
+    #     fig.tight_layout()
+    #     fig.savefig(saveloc,dpi=300)
+    #     plt.close()
+
+
+    data = []
+    for model_id in colmean_sorted.index[:]:
+        id = model_id.split('_')[-1]
+        latents = np.concatenate(latents_dataframe.loc[id][['train_latents','test_latents']].values,axis=0)
+        p = PCA()
+        p.fit(latents.reshape(-1,latents.shape[-1]))
+        data.append(pd.DataFrame({
+            'variance explained':p.explained_variance_ratio_,
+            'model_id':model_id,
+            'components':np.arange(p.n_components_),
+            'decoding_colmean':[colmean_sorted.loc[model_id]]*p.n_components_,
+        }))
+
+    data = pd.concat(data,axis=0)
+    
+    fig,ax = plt.subplots()
+    sns.lineplot(x='components',y='variance explained',units='model_id',hue='decoding_colmean',data=data,ax=ax)
+    ax.set_yscale('log')
+    # ax.set_xlim(0,20)
+    # ax.set_ylim(1e-2,2e-1)
+    fig.tight_layout()
+    saveloc = os.path.join(path_to_models, 'variance_explained.png')
+    fig.savefig(saveloc,dpi=300)
+    
+def convert_cross_decoding_scores_to_matlab():
+    saveloc = os.path.join(path_to_models, 'concat_model_data.csv')
+    latents_dataframe = pd.read_csv(saveloc)
+    latents_dataframe = load_latents(latents_dataframe)
+    latents_dataframe.index = latents_dataframe['model_id'].str.split('_').str[-1]
+
+
+    saveloc = os.path.join(path_to_models, 'cross_decoding_scores_parallel.npy')
+    scores = np.load(saveloc)
+    saveloc = os.path.join(path_to_models, 'cross_decoding_scores.csv')
+    score_dataframe = pd.read_csv(saveloc)
+    square_score_dataframe = score_dataframe.drop(['from_to_index','from','to'],axis=1).pivot(
+        index = 'from_id',
+        columns = 'to_id',
+        values = 'score'
+    )
+    print(square_score_dataframe)
+    saveloc = os.path.join(path_to_models, 'cross_decoding_scores_and_kshot.mat')
+    id = square_score_dataframe.index.str.split('_').str[-1]
+    dict_to_save = {
+        'scores' : square_score_dataframe.values,
+        'id'  : id,
+        '1000shot_reallyheldout' : latents_dataframe.loc[id][f'valid/{1000}shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_reallyheldout_bps'],
+        '500shot_reallyheldout' : latents_dataframe.loc[id][f'valid/{500}shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_reallyheldout_bps'],
+        '100shot_reallyheldout' : latents_dataframe.loc[id][f'valid/{100}shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_reallyheldout_bps'],
+    }
+    print(dict_to_save['100shot_reallyheldout'])
+    scipy.io.savemat(saveloc, dict_to_save)
 
 
 if __name__ == '__main__':
@@ -390,5 +648,11 @@ if __name__ == '__main__':
     # plot_cross_decoding_scores()
     # convert_cross_decoding_scores_to_matlab()
     # load_and_filternan_models_with_csvs()
+    
     # load_model_datas()
-    plotting_histogram()
+    # plotting_histogram()
+    # cross_decoding()
+    # plot_cross_decoding_scores()
+    # plot_kshot_and_crossdecoding()
+    # check_extremes()
+    convert_cross_decoding_scores_to_matlab()
