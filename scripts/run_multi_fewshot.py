@@ -12,9 +12,33 @@ import json
 from lfads_torch.run_model import run_model
 from paths import runs_path
 
+# ----------- Dataset-wise OPTIONS dict
+options = {
+    'mc_maze_20':{
+        'DATASET_STR' : 'nlb_mc_maze',
+        'config_path' : "../configs/multi_few_shot_original_heldout_mc_maze.yaml",
+        'OLD_RUN_TAG' : '240318_144734_MultiFewshot',
+        'experiment_json_path'  : 'experiment_state-2024-03-18_14-47-38.json',
+        'model.dropout_rate': tune.uniform(0.0, 0.25), #narrowed down after first generation
+    },    
+    'mc_rtt_5':{
+        'DATASET_STR' : 'nlb_mc_rtt',
+        'config_path' : "../configs/multi_few_shot_original_heldout_mc_rtt.yaml",
+        # 'OLD_RUN_TAG' : '240328_171607_MultiFewshot',
+        # 'experiment_json_path' : 'experiment_state-2024-03-28_17-16-11.json',
+        'OLD_RUN_TAG' : '240329_201611_MultiFewshot',
+        'experiment_json_path' : 'experiment_state-2024-03-29_20-16-15.json',
+        'model.dropout_rate': tune.uniform(0.0, 0.2),
+    }
+}
+
+select_options = options['mc_rtt_5']
+# select_options = options['mc_maze_20']
+
 # ---------- OPTIONS -----------
 PROJECT_STR = "lfads-torch-fewshot-benchmark"
-DATASET_STR = "nlb_mc_maze"
+DATASET_STR = select_options['DATASET_STR']
+config_path = select_options['config_path']
 num_samples = 200
 RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
 # OLD_RUN_TAG = '231110_002643_MultiFewshot'
@@ -28,8 +52,8 @@ RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
 # experiment_json_path = 'experiment_state-2024-03-14_17-25-57.json'  #'experiment_state-2024-03-14_14-14-57.json'
 
 #### second set of 200 models #####
-OLD_RUN_TAG = '240318_144734_MultiFewshot'  
-experiment_json_path = 'experiment_state-2024-03-18_14-47-38.json'
+OLD_RUN_TAG = select_options['OLD_RUN_TAG']
+experiment_json_path = select_options['experiment_json_path']
 load_old_checkpoints = True
 
 RUN_DIR     = Path(runs_path) / PROJECT_STR / DATASET_STR / RUN_TAG
@@ -70,7 +94,7 @@ shutil.copyfile(__file__, RUN_DIR / Path(__file__).name)
 tune.run(
     tune.with_parameters(
         run_model,
-        config_path="../configs/multi_few_shot_original_heldout_mc_maze.yaml",
+        config_path=config_path,
         do_train=False,
         do_posterior_sample=False,
         do_fewshot_protocol=False,
@@ -90,7 +114,7 @@ tune.run(
         # ]),
         "cd_rate" : tune.uniform(0.05, 0.4),
         # "model.dropout_rate" : tune.uniform(0.0, 0.6),
-        "model.dropout_rate" : tune.uniform(0.0, 0.25),
+        "model.dropout_rate" : select_options['model.dropout_rate'],
         "model.kl_co_scale"  : tune.loguniform(1e-6, 1e-4),
         "model.kl_ic_scale"  : tune.loguniform(1e-6, 1e-3),
         "model.l2_gen_scale" : tune.loguniform(1e-4, 1e0),

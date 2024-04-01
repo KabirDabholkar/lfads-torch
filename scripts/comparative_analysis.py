@@ -10,6 +10,8 @@ import numpy as np
 from itertools import product
 from tqdm import tqdm
 from sklearn.decomposition import PCA
+import scipy
+from typing import Optional
 # from hydra.utils import instantiate
 from hydra.utils import instantiate
 import seaborn as sns
@@ -33,9 +35,87 @@ CONFIG_PATH = "../configs"
 CONFIG_NAME = "comparative_config"
 # path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_maze/240316_144215_MultiFewshot'
 # path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_maze/240318_144734_MultiFewshot'
-path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_maze/240319_085230_MultiFewshot'
+# path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_maze/240319_085230_MultiFewshot'
+# path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_rtt/240328_171607_MultiFewshot'
+# path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_rtt/240329_193308_MultiFewshot'
+# path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_rtt/240329_201611_MultiFewshot'
+path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_rtt/240331_130041_MultiFewshot'
 dataframe_file_name = 'latents_dataframe.pkl'
 threshold = 2e-3
+
+test_train_split = 0.7
+
+def plot_scatter_with_lines(
+        x: Optional[str],
+        y: Optional[str],
+        data: pd.DataFrame,
+        save_path: str,
+        hue: Optional[str] = None,
+        data_lines: Optional[pd.DataFrame] = None,
+        func1 = sns.scatterplot,
+        func2 = None,
+        sortby = [],
+        xlabel=None,
+        ylabel=None,
+        xlim=[],
+        ylim=[],
+        hlines=[],
+        print_corrcoef = False,
+        zoom_inset: Optional[dict] = None,
+):
+    fig,axs = plt.subplots()
+    all_axes = [axs]
+    if zoom_inset is not None:
+        # ax_ins = inset_axes(axs, **zoom_inset)
+        ax_ins = axs.inset_axes(**zoom_inset)
+        all_axes.append(ax_ins)
+    for ax in all_axes:
+        data_ = data.sort_values(by=sortby)
+        func1(x=x, y=y, hue=hue, data=data_, ax=ax)
+        if func2:
+            # print(func2)
+            # print(data[[x,y,hue]].sort())
+            # data_ = data.sort_values(by=hue)
+            func2(x=x,y=y,data = data_,ax=ax)
+        if data_lines is not None:
+            # print('here',data_lines[y].values[0])
+            for color,(name_,x_,y_) in zip(['black','blue','red'],data_lines[['model_name',x,y]].values):
+                # print(x_,y_)
+                # l = ax.axhline(data_lines[y].values[0], ls='dashed', color='black')
+                # l = ax.axvline(data_lines[x].values[0], ls='dashed', color='black')
+                l = ax.axhline(y_, ls='dashed', color=color,label=name_)
+                ax.axvline(x_, ls='dashed', color=color)
+        for i,ls in enumerate(hlines):
+            ax.axhline(ls,color='C%d'%i,ls='dashed',lw=1)
+        handles, labels = ax.get_legend_handles_labels()
+        # if data_lines is not None:
+        #     handles += [l]
+        #     labels  += ['Ground-truth']
+    axs.legend(handles,labels,fontsize=7,framealpha=0.3)
+    axs.set_xlim(*xlim)
+    axs.set_ylim(*ylim)
+    axs.set_xlabel(x if xlabel is None else xlabel)
+    axs.set_ylabel(y if ylabel is None else ylabel)
+    if print_corrcoef:
+        a,b = data[[x,y]].dropna().values.T
+        print(a,b)
+        corrcoef = np.corrcoef(a,b)[0,1]
+        print('corrcoef',corrcoef)
+        ax.set_title('Corrcoef=%.2f'%corrcoef)
+    if zoom_inset:
+        # ax_ins.set_xlim(*zoom_xlim)
+        # ax_ins.set_ylim(*zoom_ylim)
+        ax_ins.set_xlabel(None)
+        ax_ins.set_ylabel(None)
+        legend = ax_ins.legend()
+        legend.remove()
+        axs.indicate_inset_zoom(ax_ins, edgecolor="black")
+    fig.tight_layout()
+    if not os.path.exists(os.path.dirname(save_path)):
+        os.makedirs(os.path.dirname(save_path))
+    fig.savefig(save_path,dpi=300)
+    plt.close()
+
 
 def load_and_filternan_models_with_csvs():
     saveloc = os.path.join(path_to_models, dataframe_file_name)
@@ -117,8 +197,13 @@ def load_latents(dataframe):
             model_datas.append(numpy_array)
         else:
             model_datas.append(None)
-    dataframe['train_latents'] = [(m[:300] if m is not None else None) for m in model_datas]
-    dataframe['test_latents'] = [(m[300:]  if m is not None else None) for m in model_datas]
+    
+    # total_trials = model_datas[0].shape[0]
+    # train_trials = int(test_train_split * total_trials)
+    # test_trials = total_trials-train_trials
+    
+    dataframe['train_latents'] = [(m[:int(model_datas[0].shape[0] * 0.7)] if m is not None else None) for m in model_datas]
+    dataframe['test_latents']  = [(m[int(model_datas[0].shape[0] * 0.7):]  if m is not None else None) for m in model_datas]
     return dataframe
 
 
@@ -233,9 +318,9 @@ def cross_decoding(cfg):
     latents_dataframe = pd.read_csv(saveloc)
     latents_dataframe = load_latents(latents_dataframe)
 
-    best_latents_dataframe = latents_dataframe[latents_dataframe['valid/co_bps'] > (latents_dataframe['valid/co_bps'].max() - 1e-2)]
+    best_latents_dataframe = latents_dataframe[latents_dataframe['valid/co_bps'] > (latents_dataframe['valid/co_bps'].max() - 2e-2)]
     
-    # best_latents_dataframe = best_latents_dataframe.head(20)
+    # best_latents_dataframe = best_latents_dataframe.head(2)
 
     n_models = len(best_latents_dataframe)
 
@@ -306,25 +391,32 @@ def plotting_histogram():
     fig.savefig(os.path.join(path_to_models, 'cobps_heldin_colsums.png'), dpi=300)
 
     fig, ax = plt.subplots()
-    sns.scatterplot(
+    sns.regplot(
         x='valid/co_bps',
-        y='valid/1000shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_reallyheldout_bps',
+        # y='valid/100shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_reallyheldout_bps',
+        y='post_run/100shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_co_bps',
         data=latents_dataframe,
-        ax=ax
+        ax=ax,
     )
-    ax.set_ylabel(r'$k=1000$-shot co_bps to really held out')
+    ax.set_ylabel(r'$k=100$-shot co_bps to held out')
     ax.set_xlabel('co_bps')
-    fig.savefig(os.path.join(path_to_models, 'co_bps_vs_1000shot.png'), dpi=250)
+    # ax.set_ylim(0.0,0.4)
+    # ax.set_xlim(0.2,0.4)
+    r = scipy.stats.pearsonr(x=latents_dataframe['valid/co_bps'], 
+                             y=latents_dataframe['post_run/100shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_co_bps'])[0]
+    # ax.plot([0,1],[0,1],ls='dashed',c='black')
+    ax.set_title('Pearsonr:{:1.2f}'.format(r))
+    fig.savefig(os.path.join(path_to_models, 'co_bps_vs_100shot_heldout.png'), dpi=250)
 
     fig, ax = plt.subplots()
     sns.scatterplot(
         x='valid/co_bps',
-        y=f'debugging/val_{1000}shot_co_bps_recon_truereadout',
+        y=f'debugging/val_{500}shot_co_bps_recon_truereadout',
         hue='hp/dropout_rate',
         data=latents_dataframe,
         ax=ax
     )
-    ax.plot([0.3,0.425],[0.3,0.425],ls='dashed',c='black')
+    # ax.plot([0.3,0.425],[0.3,0.425],ls='dashed',c='black')
     ax.set_aspect('equal')
     ax.set_ylabel('co_bps on held-in neurons')
     ax.set_xlabel('co_bps on held-out neurons')
@@ -442,15 +534,16 @@ def plot_kshot_and_crossdecoding():
     
 
     select_latents_dataframe = latents_dataframe.loc[list(square_score_dataframe.index.values)]
-    kshot_reallyheldout = select_latents_dataframe['valid/1000shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_reallyheldout_bps'].values
-    kshot_reallyheldout = select_latents_dataframe['valid/100shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_reallyheldout_bps'].values
+    # k1000shot_reallyheldout = select_latents_dataframe['valid/1000shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_reallyheldout_bps'].values
+    k100shot_reallyheldout = select_latents_dataframe['valid/100shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_reallyheldout_bps'].values
+    select_latents_dataframe['col_sums'] = col_sums
     kshot_heldout = select_latents_dataframe['post_run/100shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_co_bps']
     co_bps = select_latents_dataframe['valid/co_bps'].values
 
-    co_bps_heldin = select_latents_dataframe[f'debugging/val_{1000}shot_co_bps_recon_truereadout']
+    co_bps_heldin = select_latents_dataframe[f'debugging/val_{100}shot_co_bps_recon_truereadout']
     dropout_rate = select_latents_dataframe['hp/dropout_rate']
 
-    Krange = [100,500,1000]
+    Krange = [100,500]  #[100,500,1000]
     Kshot_vs_Krange = np.stack([
         select_latents_dataframe[f'valid/{k}shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_reallyheldout_bps'].values
         for k in Krange
@@ -466,15 +559,24 @@ def plot_kshot_and_crossdecoding():
     # print(latents_dataframe.loc[list(square_score_dataframe.index.values)[:2]])
     # print(latents_dataframe.shape)
     fig,ax = plt.subplots()
-    ax.scatter(col_sums,kshot_reallyheldout)
-    # ax.scatter(col_sums,kshot_heldout)
-    # ax.scatter(col_sums,co_bps)
+    ax.scatter(col_sums,k100shot_reallyheldout)
+
     ax.set_xlabel(r'Column sum of $1-R^2$')
     ax.set_ylabel(r'$k=100$-shot co_bps to really held out')
-    
+    ax.set_ylim(0.2,0.3)
     fig.tight_layout()
-    fig.savefig(os.path.join(path_to_models, 'kshot_colsums.png'), dpi=300)
+    fig.savefig(os.path.join(path_to_models, 'k100shot_colsums.png'), dpi=300)
     plt.close()
+
+    # fig,ax = plt.subplots()
+    # ax.scatter(col_sums,k1000shot_reallyheldout)
+
+    # ax.set_xlabel(r'Column sum of $1-R^2$')
+    # ax.set_ylabel(r'$k=1000$-shot co_bps to really held out')
+    
+    # fig.tight_layout()
+    # fig.savefig(os.path.join(path_to_models, 'k1000shot_colsums.png'), dpi=300)
+    # plt.close()
 
     fig,ax = plt.subplots()
     ax.scatter(col_sums,co_bps)
@@ -482,11 +584,10 @@ def plot_kshot_and_crossdecoding():
     # ax.scatter(col_sums,co_bps)
     ax.set_xlabel(r'Column sum of $1-R^2$')
     ax.set_ylabel(r'co_bps on held-out neurons')
-
-    
     fig.tight_layout()
     fig.savefig(os.path.join(path_to_models, 'co_bps_colsums.png'), dpi=300)
     plt.close()
+
 
 
     fig,ax = plt.subplots()
@@ -513,15 +614,24 @@ def plot_kshot_and_crossdecoding():
 
 
     fig,ax = plt.subplots()
-    ax.scatter(kshot_reallyheldout,co_bps_heldin)
+    ax.scatter(k100shot_reallyheldout,co_bps_heldin)
     # ax.scatter(col_sums,co_bps)
-    ax.set_xlabel(r'$k=1000$-shot co_bps to really held out')
+    ax.set_xlabel(r'$k=100$-shot co_bps to really held out')
     ax.set_ylabel(r'co_bps on held-in neurons')
     
     fig.tight_layout()
     fig.savefig(os.path.join(path_to_models, 'cobps_heldin_1000shot.png'), dpi=300)
     plt.close()
 
+    # fig,ax = plt.subplots()
+    # ax.scatter(k1000shot_reallyheldout,co_bps_heldin)
+    # # ax.scatter(col_sums,co_bps)
+    # ax.set_xlabel(r'$k=1000$-shot co_bps to really held out')
+    # ax.set_ylabel(r'co_bps on held-in neurons')
+    
+    # fig.tight_layout()
+    # fig.savefig(os.path.join(path_to_models, 'cobps_heldin_1000shot.png'), dpi=300)
+    # plt.close()
 
     fig,ax = plt.subplots()
     ax.plot(Krange,Kshot_vs_Krange)
@@ -535,14 +645,95 @@ def plot_kshot_and_crossdecoding():
     fig.savefig(os.path.join(path_to_models, 'kshot_vs_krange.png'), dpi=300)
     plt.close()
 
+
+    plot_configs = [
+        {
+            'x': 'col_sums',
+            'y': 'valid/co_bps',  
+            'save_path': os.path.join(path_to_models, 'scatterplots','cobps_colsums.png'),
+            'data': select_latents_dataframe,
+            'print_corrcoef':True,
+        },
+        {
+            'x': 'col_sums',
+            'y': f'valid/{100}shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_reallyheldout_bps',  
+            'save_path': os.path.join(path_to_models, 'scatterplots',f'k{100}shot_colsums.png'),
+            'data': select_latents_dataframe,
+            'xlabel':fr'Column sum $1-R^2$',
+            'ylabel':r'$k={100}$-shot',
+            'print_corrcoef':True,
+        },
+        {
+            'x': 'col_sums',
+            'y': f'valid/{500}shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_reallyheldout_bps',  
+            'save_path': os.path.join(path_to_models, 'scatterplots',f'k{500}shot_colsums.png'),
+            'data': select_latents_dataframe,
+            'xlabel':fr'Column sum $1-R^2$',
+            'ylabel':r'$k={500}$-shot',
+            'print_corrcoef':True,
+        },
+        {
+            'x': 'col_sums',
+            'y': f'post_run/{100}shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_co_bps',  
+            'save_path': os.path.join(path_to_models, 'scatterplots',f'k{100}shot_heldout_colsums.png'),
+            'data': select_latents_dataframe,
+            'xlabel':fr'Column sum $1-R^2$',
+            'ylabel':r'$k={100}$-shot held-out',
+            'print_corrcoef':True,
+        },
+        {
+            'x': 'col_sums',
+            'y': f'post_run/{500}shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_co_bps',  
+            'save_path': os.path.join(path_to_models, 'scatterplots',f'k{500}shot_heldout_colsums.png'),
+            'data': select_latents_dataframe,
+            'xlabel':fr'Column sum $1-R^2$',
+            'ylabel':r'$k={500}$-shot held-out',
+            'print_corrcoef':True,
+        },
+        {
+            'x': 'valid/co_bps',
+            'y': f'valid/{100}shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_reallyheldout_bps',  
+            'save_path': os.path.join(path_to_models, 'scatterplots',f'cobps_k{100}shot.png'),
+            'data': select_latents_dataframe,
+            'ylabel':r'$k={100}$-shot',
+            'print_corrcoef':True,
+            
+        },
+                {
+            'x': 'valid/co_bps',
+            'y': f'valid/{500}shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_reallyheldout_bps',  
+            'save_path': os.path.join(path_to_models, 'scatterplots',f'cobps_k{500}shot.png'),
+            'data': select_latents_dataframe,
+            'ylabel':r'$k={500}$-shot',
+            'print_corrcoef':True,
+        },
+        {
+            'x' : 'valid/co_bps',
+            'y' :  f'post_run/{100}shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_co_bps',
+            'save_path': os.path.join(path_to_models, 'scatterplots',f'k{100}shot_heldout_cobps.png'),
+            'data': select_latents_dataframe,
+            'ylabel':r'$k={100}$-shot held-out',
+            'print_corrcoef':True,
+        },        
+        {
+            'x' : 'valid/co_bps',
+            'y' :  f'post_run/{500}shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_co_bps',
+            'save_path': os.path.join(path_to_models, 'scatterplots',f'k{500}shot_heldout_cobps.png'),
+            'data': select_latents_dataframe,
+            'ylabel':r'$k={500}$-shot held-out',
+            'print_corrcoef':True,
+        }
+    ]
+    for conf in plot_configs:
+        plot_scatter_with_lines(**conf)
+    
+
 def check_extremes():
     saveloc = os.path.join(path_to_models, 'concat_model_data.csv')
     latents_dataframe = pd.read_csv(saveloc)
     latents_dataframe = load_latents(latents_dataframe)
 
     latents_dataframe.index = latents_dataframe['model_id'].str.split('_').str[-1]
-
-    
 
     saveloc = os.path.join(path_to_models, 'cross_decoding_scores.csv')
     score_dataframe = pd.read_csv(saveloc)
@@ -564,27 +755,27 @@ def check_extremes():
         'From max to min col-mean model 1-R2',1-square_score_dataframe.loc[max_colmean.index,min_colmean.index].values
     )
 
-    # n_components = 20
-    # num_trials_to_plot = 5
-    # for name,model_id in zip(['min_colmean','max_colmean'],[min_colmean.index,max_colmean.index]):
-    #     id = model_id.values[0].split('_')[-1]
-    #     # print([thing.shape for thing in latents_dataframe.loc[id][['train_latents','test_latents']].values])
-    #     latents = np.concatenate(latents_dataframe.loc[id][['train_latents','test_latents']].values,axis=0)
-    #     P = PCA(n_components=n_components)
-    #     latents_pcproj = P.fit_transform(latents.reshape(-1,latents.shape[-1])).reshape(*latents.shape[:2],n_components)
+    n_components = 3
+    num_trials_to_plot = 5
+    for name,model_id in zip(['min_colmean','max_colmean'],[min_colmean.index,max_colmean.index]):
+        id = model_id.values[0].split('_')[-1]
+        # print([thing.shape for thing in latents_dataframe.loc[id][['train_latents','test_latents']].values])
+        latents = np.concatenate(latents_dataframe.loc[id][['train_latents','test_latents']].values,axis=0)
+        P = PCA(n_components=n_components)
+        latents_pcproj = P.fit_transform(latents.reshape(-1,latents.shape[-1])).reshape(*latents.shape[:2],n_components)
 
-    #     fig = plt.figure()
-    #     ax = fig.add_subplot()#projection='3d')
-    #     print([t.shape for t in latents_pcproj[...,:3].swapaxes(0,-1).swapaxes(1,2)])
-    #     for i in range(num_trials_to_plot):
-    #         ax.plot(latents_pcproj[i,...,0].T,latents_pcproj[i,...,1].T,lw=1.4,alpha=0.7)#,latents_pcproj[...,2])
-    #         ax.scatter(latents_pcproj[i,0,0],latents_pcproj[i,0,1],c='green',s=10)
-    #         ax.scatter(latents_pcproj[i,-1,0],latents_pcproj[i,-1,1],c='red',s=10)
-    #     ax.axis('off')
-    #     saveloc = os.path.join(path_to_models, name+'_PCA.png')
-    #     fig.tight_layout()
-    #     fig.savefig(saveloc,dpi=300)
-    #     plt.close()
+        fig = plt.figure()
+        ax = fig.add_subplot()#projection='3d')
+        print([t.shape for t in latents_pcproj[...,:3].swapaxes(0,-1).swapaxes(1,2)])
+        for i in range(num_trials_to_plot):
+            ax.plot(latents_pcproj[i,...,0].T,latents_pcproj[i,...,1].T,lw=1.4,alpha=0.7)#,latents_pcproj[...,2])
+            ax.scatter(latents_pcproj[i,0,0],latents_pcproj[i,0,1],c='green',s=10)
+            ax.scatter(latents_pcproj[i,-1,0],latents_pcproj[i,-1,1],c='red',s=10)
+        ax.axis('off')
+        saveloc = os.path.join(path_to_models, name+'_PCA.png')
+        fig.tight_layout()
+        fig.savefig(saveloc,dpi=300)
+        plt.close()
 
 
     data = []
@@ -650,9 +841,9 @@ if __name__ == '__main__':
     # load_and_filternan_models_with_csvs()
     
     # load_model_datas()
-    # plotting_histogram()
+    plotting_histogram()
     # cross_decoding()
     # plot_cross_decoding_scores()
-    # plot_kshot_and_crossdecoding()
+    plot_kshot_and_crossdecoding()
     # check_extremes()
-    convert_cross_decoding_scores_to_matlab()
+    # convert_cross_decoding_scores_to_matlab()

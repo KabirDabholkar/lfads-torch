@@ -1,0 +1,18 @@
+defaults:
+  - nlb_mc_rtt
+  - _self_
+
+_target_: lfads_torch.datamodules_fewshot.DoubleHeldoutDataModule2
+new_num_encod_neurons : ${new_heldin_neurons}
+really_heldout_neuron_indices:
+  _target_ : numpy.arange
+  start    : 0
+  stop     : ${fewshot_neurons}
+batch_keys:
+  - behavior
+  - fewshot_data
+attr_keys:
+  - train_decode_mask
+  - valid_decode_mask
+  - train_fewshot_data
+  - valid_fewshot_data
