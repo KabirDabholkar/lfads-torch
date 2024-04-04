@@ -172,6 +172,7 @@ def run_model(
             ckpt_path = os.path.join(checkpoint_dir, "last.ckpt")
             if load_best:
                 ckpt_pattern = os.path.join(checkpoint_dir, "*.ckpt")
+                print(ckpt_pattern)
                 ckpt_path = max(glob(ckpt_pattern), key=os.path.getctime)
             model.load_state_dict(torch.load(ckpt_path)["state_dict"])
 

@@ -29,17 +29,27 @@ options = {
         'OLD_RUN_TAG' : '240329_201611_MultiFewshot',
         'experiment_json_path' : 'experiment_state-2024-03-29_20-16-15.json',
         'model.dropout_rate': tune.uniform(0.0, 0.2),
+    },
+    'dmfc_rsg_5':{
+        'DATASET_STR' : 'nlb_dmfc_rsg',
+        'config_path' : "../configs/multi_few_shot_dmfc_rsg.yaml",
+        # 'OLD_RUN_TAG' : '240401_164726_MultiFewshot',
+        # 'experiment_json_path' : 'experiment_state-2024-04-01_16-47-30.json',
+        'OLD_RUN_TAG' : '240402_111015_MultiFewshot',
+        'experiment_json_path' : 'experiment_state-2024-04-02_11-10-19.json',
+        'model.dropout_rate': tune.uniform(0.0, 0.3),
     }
 }
 
-select_options = options['mc_rtt_5']
+select_options = options['dmfc_rsg_5']
+# select_options = options['mc_rtt_5']
 # select_options = options['mc_maze_20']
 
 # ---------- OPTIONS -----------
 PROJECT_STR = "lfads-torch-fewshot-benchmark"
 DATASET_STR = select_options['DATASET_STR']
 config_path = select_options['config_path']
-num_samples = 200
+num_samples = 160 #200
 RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
 # OLD_RUN_TAG = '231110_002643_MultiFewshot'
 # experiment_json_path = 'experiment_state-2023-11-10_00-26-47.json'

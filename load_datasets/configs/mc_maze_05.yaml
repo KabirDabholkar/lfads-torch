@@ -1,0 +1,21 @@
+load_dataset:
+  datapath: /home/kabird/datasets/000128/sub-Jenkins
+  bin_size: 5
+  phase   : test
+  dataset_name : mc_maze
+  dataset:
+    _target_ : nlb_tools.nwb_interface.NWBDataset
+    fpath    : ${..datapath}
+    skip_fields :
+      - hand_pos
+      - cursor_pos
+      - eye_pos
+      - muscle_vel
+      - muscle_len
+      - joint_vel
+      - joint_ang
+      - force
+  preprocess :
+    - method_name: resample
+      args:
+        - ${...bin_size}

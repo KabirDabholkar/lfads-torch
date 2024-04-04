@@ -165,12 +165,7 @@ class FewshotTrainTest(pl.Callback):
         factors_train = torch.concat([t[0].factors for t in outputs_train])[:, :self.n_obs, :].detach()
         factors_valid = torch.concat([t[0].factors for t in outputs_valid])[:, :self.n_obs, :].detach()
 
-        fewshot_neurons_train = torch.concat([l[0][1][1] for l in list(batches_train)])[:, :self.n_obs, :].detach()
-        fewshot_neurons_valid = torch.concat([l[0][1][1] for l in list(batches_valid)])[:, :self.n_obs, :].detach()
-
-
-
-        self.target_name = "reallyheldout"
+        
 
         if self.use_recon_as_targets:
             recon_data = torch.concat([l[0][0].recon_data for l in list(batches_train)])
@@ -178,7 +173,10 @@ class FewshotTrainTest(pl.Callback):
             recon_data = torch.concat([l[0][0].recon_data for l in list(batches_valid)])
             fewshot_neurons_valid = recon_data[..., :self.n_obs, :].detach()
             self.target_name = "recon"
-
+        else:
+            fewshot_neurons_train = torch.concat([l[0][1][1] for l in list(batches_train)])[:, :self.n_obs, :].detach()
+            fewshot_neurons_valid = torch.concat([l[0][1][1] for l in list(batches_valid)])[:, :self.n_obs, :].detach()
+            self.target_name = "reallyheldout"
         self.true_validation_set = (factors_valid,fewshot_neurons_valid)
 
         train_samples = factors_train.shape[0]

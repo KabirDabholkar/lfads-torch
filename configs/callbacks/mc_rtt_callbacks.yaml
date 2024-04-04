@@ -1,29 +1,29 @@
 defaults:
   - default
-  - fewshot_callbacks@fewshot500_recon: fewshot_base
-  - fewshot_callbacks@fewshot500_reallyheldout: fewshot_base
-  - fewshot_callbacks@fewshot100_recon: fewshot_base
-  - fewshot_callbacks@fewshot100_reallyheldout: fewshot_base
+  # - fewshot_callbacks@fewshot500_recon: fewshot_base
+  # - fewshot_callbacks@fewshot500_reallyheldout: fewshot_base
+  # - fewshot_callbacks@fewshot100_recon: fewshot_base
+  # - fewshot_callbacks@fewshot100_reallyheldout: fewshot_base
   - _self_
 
-fewshot500_recon:
-  fewshot_head_model  : ${fewshot_head_model_lightning}
-  fewshot_trainer     : ${fewshot_trainer}
-  K                   : 500
-  use_recon_as_targets: true
+# fewshot500_recon:
+#   fewshot_head_model  : ${fewshot_head_model_lightning}
+#   fewshot_trainer     : ${fewshot_trainer}
+#   K                   : 500
+#   use_recon_as_targets: true
 
-fewshot500_reallyheldout:
-  fewshot_head_model  : ${fewshot_head_model_lightning}
-  fewshot_trainer     : ${fewshot_trainer}
-  K                   : 500
+# fewshot500_reallyheldout:
+#   fewshot_head_model  : ${fewshot_head_model_lightning}
+#   fewshot_trainer     : ${fewshot_trainer}
+#   K                   : 500
 
-fewshot100_recon:
-  fewshot_head_model  : ${fewshot_head_model_lightning}
-  fewshot_trainer     : ${fewshot_trainer}
-  K                   : 100
-  use_recon_as_targets: true
+# fewshot100_recon:
+#   fewshot_head_model  : ${fewshot_head_model_lightning}
+#   fewshot_trainer     : ${fewshot_trainer}
+#   K                   : 100
+#   use_recon_as_targets: true
 
-fewshot100_reallyheldout:
-  fewshot_head_model  : ${fewshot_head_model_lightning}
-  fewshot_trainer     : ${fewshot_trainer}
-  K                   : 100
+# fewshot100_reallyheldout:
+#   fewshot_head_model  : ${fewshot_head_model_lightning}
+#   fewshot_trainer     : ${fewshot_trainer}
+#   K                   : 100
