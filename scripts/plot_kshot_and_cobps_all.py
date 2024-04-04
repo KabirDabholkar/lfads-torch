@@ -119,8 +119,12 @@ def main():
     # ax.set_title('Pearsonr:{:1.2f}'.format(r))
 
     g = sns.FacetGrid(all_model_data, col="dataset", hue='path_to_models')
-    g.map(sns.scatterplot, 'valid/co_bps','post_run/100shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_co_bps', alpha=0.4)
+    g.map(sns.scatterplot, 'valid/co_bps',f'post_run/{100}shot_lfads_torch.post_run.fewshot_analysis.LinearLightning_co_bps', alpha=0.4, s=10)
     g.add_legend()
+    for ax in g.axes[:,0]:
+        ax.set_ylabel(rf'$k={100}$-shot cobps')
+    for ax in g.axes[-1,:]:
+        ax.set_xlabel(rf'cobps')
     fig = g.figure
     
     fig.savefig(os.path.join('/home/kabird/lfads-torch-fewshot-benchmark/plots', 'co_bps_vs_100shot_heldout.png'), dpi=250)
