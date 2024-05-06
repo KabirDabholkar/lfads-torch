@@ -1,0 +1,10 @@
+_target_: utils.set_attributes
+object  : 
+  _target_: sklearn.multioutput.MultiOutputRegressor
+  estimator:
+    _target_: sklearn.linear_model.PoissonRegressor
+    alpha   : 1e-2
+    solver  : lbfgs
+    fit_intercept : true
+  n_jobs  : -1 # use all the threads available
+name    : sklearnPoissonRegressor.alpha${.object.estimator.alpha}.solver${.object.estimator.solver}.fitintercept${.object.estimator.fit_intercept}

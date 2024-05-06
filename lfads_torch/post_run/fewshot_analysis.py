@@ -272,7 +272,7 @@ class FewshotTrainTest(pl.Callback):
         fewshot_head_model = self.fewshot_head_model
 
         print('Training few shot head...')
-
+        print(fewshot_head_model)
         if isinstance(fewshot_head_model,pl.LightningModule):
             # fewshot_head_model.fit = lambda train,val: self.fewshot_trainer(
             #     model=fewshot_head_model,
@@ -310,8 +310,13 @@ class FewshotTrainTest(pl.Callback):
         ### bps evaluated all recon neurons
         # valid_kshot_smoothing = bits_per_spike(pred, self.Y_val)
         valid_kshot_smoothing = bits_per_spike(pred, Y_trueval)
-        head_module_name = '.'.join([self.fewshot_head_model.__class__.__module__,self.fewshot_head_model.__class__.__name__])
+        if hasattr(self.fewshot_head_model,'name'):
+            head_module_name = self.fewshot_head_model.name
+        else:
+            head_module_name = '.'.join([self.fewshot_head_model.__class__.__module__,self.fewshot_head_model.__class__.__name__])
+        
         pl_module.log_dict({f'valid/{self.K}shot_{head_module_name}_{self.target_name}_bps':valid_kshot_smoothing})
+        pl_module.log_dict({f'valid/{self.K}shot_seed{self.seed}_{head_module_name}_{self.target_name}_bps':valid_kshot_smoothing})
 
         if self.target_name=='recon':
             ### bps evaluated on the heldout subset of recon neurons, only if this is the recon set

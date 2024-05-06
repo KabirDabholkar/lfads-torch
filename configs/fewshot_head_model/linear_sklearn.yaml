@@ -1,3 +1,4 @@
 _target_: sklearn.multioutput.MultiOutputRegressor
 estimator:
   _target_: sklearn.linear_model.PoissonRegressor
+n_jobs  : -1 # use all the threads available

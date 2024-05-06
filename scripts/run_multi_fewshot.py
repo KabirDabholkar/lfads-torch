@@ -14,13 +14,20 @@ from paths import runs_path
 
 # ----------- Dataset-wise OPTIONS dict
 options = {
+    'mc_maze_5':{
+        'DATASET_STR' : 'nlb_mc_maze',
+        'config_path' : "../configs/multi_few_shot_original_heldout_mc_maze_5.yaml",
+        'OLD_RUN_TAG' : '240318_144734_MultiFewshot',
+        'experiment_json_path'  : 'experiment_state-2024-03-18_14-47-38.json',
+        'model.dropout_rate': tune.uniform(0.0, 0.25), #narrowed down after first generation
+    },
     'mc_maze_20':{
         'DATASET_STR' : 'nlb_mc_maze',
         'config_path' : "../configs/multi_few_shot_original_heldout_mc_maze.yaml",
         'OLD_RUN_TAG' : '240318_144734_MultiFewshot',
         'experiment_json_path'  : 'experiment_state-2024-03-18_14-47-38.json',
         'model.dropout_rate': tune.uniform(0.0, 0.25), #narrowed down after first generation
-    },    
+    },
     'mc_rtt_5':{
         'DATASET_STR' : 'nlb_mc_rtt',
         'config_path' : "../configs/multi_few_shot_original_heldout_mc_rtt.yaml",
@@ -49,7 +56,9 @@ select_options = options['dmfc_rsg_5']
 PROJECT_STR = "lfads-torch-fewshot-benchmark"
 DATASET_STR = select_options['DATASET_STR']
 config_path = select_options['config_path']
-num_samples = 160 #200
+num_samples = 200 #1  #160 
+do_tune_run = False
+do_collate_results = True
 RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
 # OLD_RUN_TAG = '231110_002643_MultiFewshot'
 # experiment_json_path = 'experiment_state-2023-11-10_00-26-47.json'
@@ -99,46 +108,47 @@ RUN_DIR.mkdir(parents=True,exist_ok=True)
 # Copy this script into the run directory
 shutil.copyfile(__file__, RUN_DIR / Path(__file__).name)
 
-
-# Run the hyperparameter search
-tune.run(
-    tune.with_parameters(
-        run_model,
-        config_path=config_path,
-        do_train=False,
-        do_posterior_sample=False,
-        do_fewshot_protocol=False,
-        do_post_run_analysis=True,
-        run_dir = OLD_RUN_DIR,
-        trial_ids = trial_ids,
-        load_best = True
-    ),
-    # metric="valid/recon_smth",  removed for loading checkpoints for analysis
-    # mode="min",
-    name=RUN_DIR.name,
-    config={
-        **mandatory_overrides,
-        # "dropout_target" : tune.choice([
-        #     'lfads_torch.modules.augmentations.CoordinatedDropout',
-        #     'lfads_torch.modules.augmentations.CoordinatedDropoutChannelWise',
-        # ]),
-        "cd_rate" : tune.uniform(0.05, 0.4),
-        # "model.dropout_rate" : tune.uniform(0.0, 0.6),
-        "model.dropout_rate" : select_options['model.dropout_rate'],
-        "model.kl_co_scale"  : tune.loguniform(1e-6, 1e-4),
-        "model.kl_ic_scale"  : tune.loguniform(1e-6, 1e-3),
-        "model.l2_gen_scale" : tune.loguniform(1e-4, 1e0),
-        "model.l2_con_scale" : tune.loguniform(1e-4, 1e0),
-    },
-    resources_per_trial=dict(cpu=3, gpu=0.5),
-    num_samples=num_samples,
-    local_dir=RUN_DIR.parent,
-    search_alg=BasicVariantGenerator(random_state=0),
-    scheduler=FIFOScheduler(),
-    verbose=1,
-    progress_reporter=CLIReporter(
-        metric_columns=["valid/recon_smth", "cur_epoch"],
-        sort_by_metric=True,
-    ),
-    trial_dirname_creator=lambda trial: str(trial),
-)
+if do_tune_run:
+    # Run the hyperparameter search
+    tune.run(
+        tune.with_parameters(
+            run_model,
+            config_path=config_path,
+            do_train=False,
+            do_posterior_sample=False,
+            do_fewshot_protocol=False,
+            do_post_run_analysis=False,
+            do_nlb_fewshot=True,
+            run_dir = OLD_RUN_DIR,
+            trial_ids = trial_ids,
+            load_best = True
+        ),
+        # metric="valid/recon_smth",  removed for loading checkpoints for analysis
+        # mode="min",
+        name=RUN_DIR.name,
+        config={
+            **mandatory_overrides,
+            # "dropout_target" : tune.choice([
+            #     'lfads_torch.modules.augmentations.CoordinatedDropout',
+            #     'lfads_torch.modules.augmentations.CoordinatedDropoutChannelWise',
+            # ]),
+            "cd_rate" : tune.uniform(0.05, 0.4),
+            # "model.dropout_rate" : tune.uniform(0.0, 0.6),
+            "model.dropout_rate" : select_options['model.dropout_rate'],
+            "model.kl_co_scale"  : tune.loguniform(1e-6, 1e-4),
+            "model.kl_ic_scale"  : tune.loguniform(1e-6, 1e-3),
+            "model.l2_gen_scale" : tune.loguniform(1e-4, 1e0),
+            "model.l2_con_scale" : tune.loguniform(1e-4, 1e0),
+        },
+        resources_per_trial=dict(cpu=3, gpu=0.5),
+        num_samples=num_samples,
+        local_dir=RUN_DIR.parent,
+        search_alg=BasicVariantGenerator(random_state=0),
+        scheduler=FIFOScheduler(),
+        verbose=1,
+        progress_reporter=CLIReporter(
+            metric_columns=["valid/recon_smth", "cur_epoch"],
+            sort_by_metric=True,
+        ),
+        trial_dirname_creator=lambda trial: str(trial),
+    )

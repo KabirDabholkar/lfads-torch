@@ -1,0 +1,393 @@
+defaults:
+  - fewshot_callbacks@fewshot_k10_seed0: fewshot_base
+  - fewshot_callbacks@fewshot_k10_seed1: fewshot_base
+  - fewshot_callbacks@fewshot_k10_seed2: fewshot_base
+  - fewshot_callbacks@fewshot_k10_seed3: fewshot_base
+  - fewshot_callbacks@fewshot_k10_seed4: fewshot_base
+  - fewshot_callbacks@fewshot_k10_seed5: fewshot_base
+  - fewshot_callbacks@fewshot_k10_seed6: fewshot_base
+  - fewshot_callbacks@fewshot_k10_seed7: fewshot_base
+  - fewshot_callbacks@fewshot_k10_seed8: fewshot_base
+  - fewshot_callbacks@fewshot_k10_seed9: fewshot_base
+  - fewshot_callbacks@fewshot_k10_seed10: fewshot_base
+  - fewshot_callbacks@fewshot_k10_seed11: fewshot_base
+  - fewshot_callbacks@fewshot_k10_seed12: fewshot_base
+  - fewshot_callbacks@fewshot_k10_seed13: fewshot_base
+  - fewshot_callbacks@fewshot_k10_seed14: fewshot_base
+  - fewshot_callbacks@fewshot_k10_seed15: fewshot_base
+  - fewshot_callbacks@fewshot_k10_seed16: fewshot_base
+  - fewshot_callbacks@fewshot_k10_seed17: fewshot_base
+  - fewshot_callbacks@fewshot_k10_seed18: fewshot_base
+  - fewshot_callbacks@fewshot_k10_seed19: fewshot_base
+  - fewshot_callbacks@fewshot_k20_seed20: fewshot_base
+  - fewshot_callbacks@fewshot_k20_seed21: fewshot_base
+  - fewshot_callbacks@fewshot_k20_seed22: fewshot_base
+  - fewshot_callbacks@fewshot_k20_seed23: fewshot_base
+  - fewshot_callbacks@fewshot_k20_seed24: fewshot_base
+  - fewshot_callbacks@fewshot_k20_seed25: fewshot_base
+  - fewshot_callbacks@fewshot_k20_seed26: fewshot_base
+  - fewshot_callbacks@fewshot_k20_seed27: fewshot_base
+  - fewshot_callbacks@fewshot_k20_seed28: fewshot_base
+  - fewshot_callbacks@fewshot_k20_seed29: fewshot_base
+  - fewshot_callbacks@fewshot_k50_seed30: fewshot_base
+  - fewshot_callbacks@fewshot_k50_seed31: fewshot_base
+  - fewshot_callbacks@fewshot_k50_seed32: fewshot_base
+  - fewshot_callbacks@fewshot_k50_seed33: fewshot_base
+  - fewshot_callbacks@fewshot_k50_seed34: fewshot_base
+  - fewshot_callbacks@fewshot_k100_seed35: fewshot_base
+  - fewshot_callbacks@fewshot_k100_seed36: fewshot_base
+  - fewshot_callbacks@fewshot_k500_seed37: fewshot_base
+  - fewshot_callbacks@fewshot_k500_seed38: fewshot_base
+  - _self_
+
+fewshot_k100_seed35:
+  K: 100
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 35
+  use_recon_as_targets: true
+fewshot_k100_seed36:
+  K: 100
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 36
+  use_recon_as_targets: true
+fewshot_k10_seed0:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 0
+  use_recon_as_targets: true
+fewshot_k10_seed1:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 1
+  use_recon_as_targets: true
+fewshot_k10_seed10:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 10
+  use_recon_as_targets: true
+fewshot_k10_seed11:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 11
+  use_recon_as_targets: true
+fewshot_k10_seed12:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 12
+  use_recon_as_targets: true
+fewshot_k10_seed13:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 13
+  use_recon_as_targets: true
+fewshot_k10_seed14:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 14
+  use_recon_as_targets: true
+fewshot_k10_seed15:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 15
+  use_recon_as_targets: true
+fewshot_k10_seed16:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 16
+  use_recon_as_targets: true
+fewshot_k10_seed17:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 17
+  use_recon_as_targets: true
+fewshot_k10_seed18:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 18
+  use_recon_as_targets: true
+fewshot_k10_seed19:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 19
+  use_recon_as_targets: true
+fewshot_k10_seed2:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 2
+  use_recon_as_targets: true
+fewshot_k10_seed3:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 3
+  use_recon_as_targets: true
+fewshot_k10_seed4:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 4
+  use_recon_as_targets: true
+fewshot_k10_seed5:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 5
+  use_recon_as_targets: true
+fewshot_k10_seed6:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 6
+  use_recon_as_targets: true
+fewshot_k10_seed7:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 7
+  use_recon_as_targets: true
+fewshot_k10_seed8:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 8
+  use_recon_as_targets: true
+fewshot_k10_seed9:
+  K: 10
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 9
+  use_recon_as_targets: true
+fewshot_k20_seed20:
+  K: 20
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 20
+  use_recon_as_targets: true
+fewshot_k20_seed21:
+  K: 20
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 21
+  use_recon_as_targets: true
+fewshot_k20_seed22:
+  K: 20
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 22
+  use_recon_as_targets: true
+fewshot_k20_seed23:
+  K: 20
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 23
+  use_recon_as_targets: true
+fewshot_k20_seed24:
+  K: 20
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 24
+  use_recon_as_targets: true
+fewshot_k20_seed25:
+  K: 20
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 25
+  use_recon_as_targets: true
+fewshot_k20_seed26:
+  K: 20
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 26
+  use_recon_as_targets: true
+fewshot_k20_seed27:
+  K: 20
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 27
+  use_recon_as_targets: true
+fewshot_k20_seed28:
+  K: 20
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 28
+  use_recon_as_targets: true
+fewshot_k20_seed29:
+  K: 20
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 29
+  use_recon_as_targets: true
+fewshot_k500_seed37:
+  K: 500
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 37
+  use_recon_as_targets: true
+fewshot_k500_seed38:
+  K: 500
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 38
+  use_recon_as_targets: true
+fewshot_k50_seed30:
+  K: 50
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 30
+  use_recon_as_targets: true
+fewshot_k50_seed31:
+  K: 50
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 31
+  use_recon_as_targets: true
+fewshot_k50_seed32:
+  K: 50
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 32
+  use_recon_as_targets: true
+fewshot_k50_seed33:
+  K: 50
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 33
+  use_recon_as_targets: true
+fewshot_k50_seed34:
+  K: 50
+  eval_type: post_run
+  fewshot_head_model: ${fewshot_head_model_sklearn}
+  fewshot_trainer: ${fewshot_trainer}
+  fewshot_trainer_epochs: 150
+  log_every_n_epochs: 1
+  seed: 34
+  use_recon_as_targets: true

@@ -13,12 +13,37 @@ from ray import tune
 from functools import partial
 from typing import Optional
 import pickle as pkl
+from lfads_torch.post_run.nlb_fewshot import run_nlb_fewshot
 
 from .utils import flatten
 
 OmegaConf.register_new_resolver("relpath", lambda p: Path(__file__).parent / ".." / p)
 OmegaConf.register_new_resolver("eval", eval)
 
+
+def load_model(model,config_path,run_dir,trial_ids=None,load_best=True):
+    if "single" not in str(config_path) and run_dir:
+        tune_trial_name = tune.get_trial_name()
+        tune_trial_name_number = str(tune_trial_name).split('_')[-1]
+
+        # runs = os.listdir( run_dir )
+        # runs = [r for r in runs if 'run_model' in r]
+        print(trial_ids)
+        run_name = 'run_model_' + [r for r in trial_ids if tune_trial_name_number in r][0]
+        checkpoint_dir = Path(run_dir) / run_name / 'lightning_checkpoints'
+    elif run_dir is None:
+        checkpoint_dir = Path(tune.get_trial_dir()) / 'lightning_checkpoints'
+
+    print('checkpoint_dir',checkpoint_dir)
+
+    if checkpoint_dir:
+        ckpt_path = os.path.join(checkpoint_dir, "last.ckpt")
+        if load_best:
+            ckpt_pattern = os.path.join(checkpoint_dir, "*.ckpt")
+            print(ckpt_pattern)
+            ckpt_path = max(glob(ckpt_pattern), key=os.path.getctime)
+        model.load_state_dict(torch.load(ckpt_path)["state_dict"])
+    return model,checkpoint_dir
 
 def run_model(
     overrides: dict = {},
@@ -27,7 +52,8 @@ def run_model(
     do_train: bool = True,
     do_posterior_sample: bool = True,
     do_fewshot_protocol: bool = True,
-    do_post_run_analysis  : bool = True,
+    do_post_run_analysis: bool = True,
+    do_nlb_fewshot: bool = False,
     run_dir: Optional[os.PathLike] = None,
     trial_ids: Optional[list[str]] = None,
     load_best: bool = True,
@@ -209,3 +235,16 @@ def run_model(
             factors,
             Path(tune.get_trial_dir()) / 'model_outputs_valid'
         )
+
+    if do_nlb_fewshot:
+        model,checkpoint_dir = load_model(model,config_path,run_dir,trial_ids=trial_ids,load_best=load_best)
+        trainer = instantiate(
+            config.trainer,
+            callbacks=[instantiate(c) for c in config.post_run_analysis_callbacks.values()],
+            logger=[instantiate(lg) for lg in config.logger.values()],
+            gpus=int(torch.cuda.is_available()),
+        )
+        trainer.fit_loop.max_epochs = 1
+        df = run_nlb_fewshot(model)
+        df['path'] = checkpoint_dir
+        df.to_csv(Path(tune.get_trial_dir()) / 'results.csv')

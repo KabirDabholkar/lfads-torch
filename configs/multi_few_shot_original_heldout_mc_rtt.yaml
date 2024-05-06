@@ -1,11 +1,15 @@
 defaults:
   - multi
   - fewshot_head_model@fewshot_head_model_lightning: linear_lightning
-  - fewshot_head_model@fewshot_head_model_sklearn: linear_sklearn
+  - fewshot_head_model@fewshot_head_model_sklearn: linear_sklearn_named
+  # - callbacks@post_run_analysis_callbacks: fewshot10and50
+  # - callbacks@post_run_analysis_callbacks: sklearn_fewshot10and50
+  - callbacks@post_run_analysis_callbacks: sklearn_fewshot20and50and100and1000 
   - _self_
   - override model      : nlb_mc_rtt_modinfeatures
   - override datamodule : nlb_mc_rtt_doubleheldout_splitheldin
   - override callbacks  : mc_maze_callbacks
+
 
 old_heldin_neurons  : 98
 old_heldout_neurons : 32
@@ -19,6 +23,13 @@ log_every_n_epochs_fewshot : 10
 # dropout_target : lfads_torch.modules.augmentations.CoordinatedDropoutChannelWise
 dropout_target : lfads_torch.modules.augmentations.CoordinatedDropout
 cd_rate : 0.3
+
+fewshot_head_model_sklearn:
+  object:
+    estimator:
+      alpha: 1e-2
+      # solver: newton-cholesky
+
 
 trainer:
   max_epochs  : 1000
@@ -75,51 +86,51 @@ post_run_analysis_callbacks:
   #   use_recon_as_targets: true
   #   eval_type           : post_run
 
-  fewshot500_reallyheldout:
-    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
-    fewshot_head_model  : ${fewshot_head_model_lightning}
-    fewshot_trainer     : ${fewshot_trainer}
-    K                   : 500
-    ratio               : 0.3
-    seed                : 0
-    log_every_n_epochs  : 1
-    fewshot_trainer_epochs: 150
-    eval_type           : post_run
+  # fewshot500_reallyheldout:
+  #   _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
+  #   fewshot_head_model  : ${fewshot_head_model_lightning}
+  #   fewshot_trainer     : ${fewshot_trainer}
+  #   K                   : 500
+  #   ratio               : 0.3
+  #   seed                : 0
+  #   log_every_n_epochs  : 1
+  #   fewshot_trainer_epochs: 150
+  #   eval_type           : post_run
 
-  fewshot500_recon:
-    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
-    fewshot_head_model  : ${fewshot_head_model_lightning}
-    fewshot_trainer     : ${fewshot_trainer}
-    K                   : 500
-    ratio               : 0.3
-    seed                : 0
-    log_every_n_epochs  : 1
-    fewshot_trainer_epochs: 150
-    use_recon_as_targets: true
-    eval_type           : post_run
+  # fewshot500_recon:
+  #   _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
+  #   fewshot_head_model  : ${fewshot_head_model_lightning}
+  #   fewshot_trainer     : ${fewshot_trainer}
+  #   K                   : 500
+  #   ratio               : 0.3
+  #   seed                : 0
+  #   log_every_n_epochs  : 1
+  #   fewshot_trainer_epochs: 150
+  #   use_recon_as_targets: true
+  #   eval_type           : post_run
 
-  fewshot100_reallyheldout:
-    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
-    fewshot_head_model  : ${fewshot_head_model_lightning}
-    fewshot_trainer     : ${fewshot_trainer}
-    K                   : 100
-    ratio               : 0.3
-    seed                : 0
-    log_every_n_epochs  : 1
-    fewshot_trainer_epochs: 150
-    eval_type           : post_run
+  # fewshot100_reallyheldout:
+  #   _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
+  #   fewshot_head_model  : ${fewshot_head_model_lightning}
+  #   fewshot_trainer     : ${fewshot_trainer}
+  #   K                   : 100
+  #   ratio               : 0.3
+  #   seed                : 0
+  #   log_every_n_epochs  : 1
+  #   fewshot_trainer_epochs: 150
+  #   eval_type           : post_run
 
-  fewshot100_recon:
-    _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
-    fewshot_head_model  : ${fewshot_head_model_lightning}
-    fewshot_trainer     : ${fewshot_trainer}
-    K                   : 100
-    ratio               : 0.3
-    seed                : 0
-    log_every_n_epochs  : 1
-    fewshot_trainer_epochs: 150
-    use_recon_as_targets: true
-    eval_type           : post_run
+  # fewshot100_recon:
+  #   _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
+  #   fewshot_head_model  : ${fewshot_head_model_lightning}
+  #   fewshot_trainer     : ${fewshot_trainer}
+  #   K                   : 100
+  #   ratio               : 0.3
+  #   seed                : 0
+  #   log_every_n_epochs  : 1
+  #   fewshot_trainer_epochs: 150
+  #   use_recon_as_targets: true
+  #   eval_type           : post_run
 
   factors_PR:
     _target_            : lfads_torch.callbacks.AnalysisCallback
