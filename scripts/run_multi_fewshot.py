@@ -48,17 +48,16 @@ options = {
     }
 }
 
-select_options = options['dmfc_rsg_5']
+# select_options = options['dmfc_rsg_5']
 # select_options = options['mc_rtt_5']
-# select_options = options['mc_maze_20']
+select_options = options['mc_maze_20']
 
 # ---------- OPTIONS -----------
 PROJECT_STR = "lfads-torch-fewshot-benchmark"
 DATASET_STR = select_options['DATASET_STR']
 config_path = select_options['config_path']
-num_samples = 200 #1  #160 
-do_tune_run = False
-do_collate_results = True
+num_samples = 50 #200  #160 
+do_tune_run = True
 RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
 # OLD_RUN_TAG = '231110_002643_MultiFewshot'
 # experiment_json_path = 'experiment_state-2023-11-10_00-26-47.json'
@@ -118,7 +117,9 @@ if do_tune_run:
             do_posterior_sample=False,
             do_fewshot_protocol=False,
             do_post_run_analysis=False,
-            do_nlb_fewshot=True,
+            do_nlb_fewshot = False,
+            do_nlb_fewshot2 = True,
+            variant = 'mc_maze_20',
             run_dir = OLD_RUN_DIR,
             trial_ids = trial_ids,
             load_best = True

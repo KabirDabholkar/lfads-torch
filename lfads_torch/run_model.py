@@ -13,13 +13,26 @@ from ray import tune
 from functools import partial
 from typing import Optional
 import pickle as pkl
-from lfads_torch.post_run.nlb_fewshot import run_nlb_fewshot
+from lfads_torch.post_run.nlb_fewshot import run_nlb_fewshot, run_model_on_numpy
+from nlb_tools.load_and_save_latents import run_nlb_evaluation_protocol, run_fewshot_given_latents
+from nlb_tools import sklearn_glm 
+import numpy as np
+import pandas as pd
 
 from .utils import flatten
 
 OmegaConf.register_new_resolver("relpath", lambda p: Path(__file__).parent / ".." / p)
 OmegaConf.register_new_resolver("eval", eval)
 
+
+glms_funcs = {
+    # 'sklearn_glm.fit_poisson_parallel(alpha=0.0,max_iter=500)'  : partial(sklearn_glm.fit_poisson_parallel,alpha=0.0,max_iter=500),
+    # 'sklearn_glm.fit_poisson_parallel(alpha=0.0,max_iter=1000)' : partial(sklearn_glm.fit_poisson_parallel,alpha=0.0,max_iter=1000),
+    # 'sklearn_glm.fit_poisson_parallel(alpha=0.01,max_iter=500)'  : partial(sklearn_glm.fit_poisson_parallel,alpha=0.1,max_iter=500),
+    'sklearn_glm.fit_poisson_parallel(alpha=0.01,max_iter=500)'  : partial(sklearn_glm.fit_poisson_parallel,alpha=0.01,max_iter=500),
+    'sklearn_glm.fit_poisson_parallel(alpha=0.1,max_iter=500)'  : partial(sklearn_glm.fit_poisson_parallel,alpha=0.1,max_iter=500),
+    # 'sklearn_glm.fit_poisson_parallel(alpha=0.5,max_iter=500)'  : partial(sklearn_glm.fit_poisson_parallel,alpha=0.5,max_iter=500),
+}
 
 def load_model(model,config_path,run_dir,trial_ids=None,load_best=True):
     if "single" not in str(config_path) and run_dir:
@@ -45,6 +58,14 @@ def load_model(model,config_path,run_dir,trial_ids=None,load_best=True):
         model.load_state_dict(torch.load(ckpt_path)["state_dict"])
     return model,checkpoint_dir
 
+def wrap_run_model_on_numpy(model,spikes_heldin):
+    spikes_heldin_reallyheldoutremoved = spikes_heldin[:,:,22:]
+    pred_full , latents = run_model_on_numpy(model,spikes_heldin_reallyheldoutremoved)
+    print(pred_full.shape,latents.shape)
+    pred_full = np.concatenate([np.zeros_like(pred_full)[:,:,:22],pred_full],axis=-1)
+    return pred_full, latents
+
+
 def run_model(
     overrides: dict = {},
     checkpoint_dir: str = None,
@@ -54,6 +75,8 @@ def run_model(
     do_fewshot_protocol: bool = True,
     do_post_run_analysis: bool = True,
     do_nlb_fewshot: bool = False,
+    do_nlb_fewshot2: bool = False,
+    variant : str = 'mc_maze_20',
     run_dir: Optional[os.PathLike] = None,
     trial_ids: Optional[list[str]] = None,
     load_best: bool = True,
@@ -245,6 +268,32 @@ def run_model(
             gpus=int(torch.cuda.is_available()),
         )
         trainer.fit_loop.max_epochs = 1
-        df = run_nlb_fewshot(model)
+        df = run_nlb_fewshot(model,variant=variant)
         df['path'] = checkpoint_dir
-        df.to_csv(Path(tune.get_trial_dir()) / 'results.csv')
+        df.to_csv(Path(tune.get_trial_dir()) / 'results_old.csv')
+
+    if do_nlb_fewshot2:
+        model,checkpoint_dir = load_model(model,config_path,run_dir,trial_ids=trial_ids,load_best=load_best)
+        results_df,results_dict,latents_dict, output_dict = run_nlb_evaluation_protocol(
+            model=model,
+            run_model_on_numpy_pre=wrap_run_model_on_numpy, #run_model_on_numpy,
+            variant=variant,
+            do_fewshot=True,
+            do_evaluation=False
+        )
+        DFs = []
+        for fit_poisson_func_name, fit_poisson_func in glms_funcs.items():
+            results_df,results_dict = run_fewshot_given_latents(
+                latents_dict=latents_dict,
+                variant=variant,
+                output_dict=output_dict,
+                fit_poisson_func=fit_poisson_func)
+            # results_df['fewshot_code'] = fit_poisson_func_name
+            results_df = results_df.rename(columns=lambda x: ':'.join([x,fit_poisson_func_name]) if 'shot' in x else x)
+            DFs.append(results_df)
+        result_dfs = pd.concat(DFs,axis=1).reset_index()
+        result_dfs = result_dfs.loc[:, ~result_dfs.columns.duplicated()]
+        savepath = Path(tune.get_trial_dir()) / 'results_new.csv'
+        # savepath = ckpt_path.replace('.pth','_results6.csv')
+        result_dfs.to_csv(savepath)
+        

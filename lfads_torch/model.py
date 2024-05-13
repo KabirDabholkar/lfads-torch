@@ -2,6 +2,8 @@ import pytorch_lightning as pl
 import torch
 from torch import nn
 
+from typing import Any, Dict, Literal, Tuple, Union
+
 from .metrics import ExpSmoothedMetric, r2_score, regional_bits_per_spike
 from .modules import augmentations
 from .modules.decoder import Decoder
@@ -327,14 +329,58 @@ class LFADS(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         return self._shared_step(batch, batch_idx, "valid")
 
-    def predict_step(self, batch, batch_ix, sample_posteriors=True):
+    # def predict_step(self, batch, batch_ix, sample_posteriors=True):
+    # # Discard the extra data - only the SessionBatches are relevant here
+    # # Determine which sessions are in the batch
+    # sessions = sorted(batch.keys())
+    # # Discard the extra data - only the SessionBatches are relevant here
+    # # if do_extract_first_element_step:
+    # batch = {s: b[0] for s, b in batch.items()}
+    # # Process the batch for each session (in order so aug stack can keep track)
+    # aug_stack = self.infer_aug_stack
+    # batch = {s: aug_stack.process_batch(batch[s]) for s in sessions}
+    # # Reset to clear any saved masks
+    # self.infer_aug_stack.reset()
+    # # Perform the forward pass
+    # return self.forward(
+    #     batch=batch,
+    #     sample_posteriors=self.hparams.variational and sample_posteriors,
+    #     output_means=False,
+    # )
+    
+    def predict_step(
+        self,
+        batch: Dict[int, Tuple[SessionBatch, Tuple[torch.Tensor]]],
+        batch_ix: int,
+        sample_posteriors=True,
+    ) -> Dict[int, SessionOutput]:
+        """
+        Performs a prediction step.
+
+        Parameters
+        ----------
+        batch : Dict[int, Tuple[SessionBatch, Tuple[torch.Tensor]]]
+            The batch of data to be processed. The dictionary keys are session IDs, and the values are tuples
+            containing a SessionBatch object and a tuple of torch tensors.
+        batch_idx : int
+            The index of the current batch.
+        sample_posteriors : bool, optional
+            Whether to sample from the posterior distribution or pass means, by default True
+
+        Returns
+        -------
+        Dict[int, SessionOutput]
+            The output of the forward pass through the model.
+        """
         # Discard the extra data - only the SessionBatches are relevant here
         batch = {s: b[0] for s, b in batch.items()}
         # Process the batch for each session
+        # print('len batch transforms',len(self.infer_aug_stack.batch_transforms))
         batch = {s: self.infer_aug_stack.process_batch(b) for s, b in batch.items()}
         # Reset to clear any saved masks
         self.infer_aug_stack.reset()
         # Perform the forward pass
+        # print('self.hparams.variational',self.hparams.variational)
         return self.forward(
             batch=batch,
             sample_posteriors=self.hparams.variational and sample_posteriors,
@@ -370,7 +416,7 @@ class StoreOutputsLFADS(LFADS):
         self.model_outputs_valid = []
         self.batches_valid = []
 
-    def _shared_step(self, batch, batch_idx, split):
+    def _shared_step(self, batch, batch_idx, split, return_output=False):
         hps = self.hparams
         # Check that the split argument is valid
         assert split in ["train", "valid"]
@@ -393,6 +439,8 @@ class StoreOutputsLFADS(LFADS):
         output = self.forward(
             batch, sample_posteriors=hps.variational, output_means=False
         )
+        if return_output:
+            return output
         ####### Modifications start #########
         model_outputs = getattr(self,'model_outputs_'+split)
         model_outputs += [output]
@@ -423,6 +471,8 @@ class StoreOutputsLFADS(LFADS):
         )
         bps = torch.mean(torch.stack(sess_bps))
         co_bps = torch.mean(torch.stack(sess_co_bps))
+        # print('co_bps,batch_idx',co_bps,batch_idx)
+        # raise Exception ("stopping")
         fp_bps = torch.mean(torch.stack(sess_fp_bps))
         # Aggregate the heldout cost for logging
         if not hps.recon_reduce_mean:

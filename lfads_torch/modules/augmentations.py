@@ -27,6 +27,7 @@ class AugmentationStack:
     def process_batch(self, batch):
         for transform in self.batch_transforms:
             batch = transform.process_batch(batch)
+        # print(type(batch),len(batch))
         return SessionBatch(*batch)
 
     def process_losses(self, losses, batch, log_fn, data_split):

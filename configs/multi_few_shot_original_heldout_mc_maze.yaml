@@ -2,11 +2,12 @@ defaults:
   - multi
   - fewshot_head_model@fewshot_head_model_lightning: linear_lightning
   - fewshot_head_model@fewshot_head_model_sklearn: linear_sklearn
-  - callbacks@post_run_analysis_callbacks: fewshot10and20and50and100and500and1000
+  # - callbacks@post_run_analysis_callbacks: fewshot10and20and50and100and500and1000
+  - callbacks@post_run_analysis_callbacks: mc_maze_callbacks
   - _self_
   - override model      : nlb_mc_maze_modinfeatures
   - override datamodule : nlb_mc_maze_doubleheldout_splitheldin
-  - override callbacks  : mc_maze_callbacks
+  # - override callbacks  : mc_maze_callbacks
 
 old_heldin_neurons  : 137
 old_heldout_neurons : 45
@@ -52,7 +53,7 @@ fewshot_protocol:
     # num_samples: 50
 
 
-post_run_analysis_callbacks:
+# post_run_analysis_callbacks:
   # fewshot1000_reallyheldout:
   #   _target_            : lfads_torch.post_run.fewshot_analysis.FewshotTrainTest
   #   fewshot_head_model  : ${fewshot_head_model_lightning}
@@ -122,20 +123,22 @@ post_run_analysis_callbacks:
   #   use_recon_as_targets: true
   #   eval_type           : post_run
 
-  factors_PR:
-    _target_            : lfads_torch.callbacks.AnalysisCallback
-    analysis_func       :
-      _target_            : lfads_torch.post_run.analysis_functions.participation_ratio
-      _partial_           : true
-    log_name            : post_run/factors_participation_ratio
-    arg_names           :
-      - factors
-    log_every_n_epochs  : 1
+  # factors_PR:
+  #   _target_            : lfads_torch.callbacks.AnalysisCallback
+  #   analysis_func       :
+  #     _target_            : lfads_torch.post_run.analysis_functions.participation_ratio
+  #     _partial_           : true
+  #   log_name            : post_run/factors_participation_ratio
+  #   arg_names           :
+  #     - factors
+  #   log_every_n_epochs  : 1
 
-  raster_plot:
-    _target_: lfads_torch.callbacks.RasterPlot
-    log_every_n_epochs: 1
+  # raster_plot:
+  #   _target_: lfads_torch.callbacks.RasterPlot
+  #   log_every_n_epochs: 1
 
-  trajectory_plot:
-    _target_: lfads_torch.callbacks.TrajectoryPlot
-    log_every_n_epochs: 1
+  # trajectory_plot:
+  #   _target_: lfads_torch.callbacks.TrajectoryPlot
+  #   log_every_n_epochs: 1
+
+  # nlb : ${callbacks.evaluation_callback}

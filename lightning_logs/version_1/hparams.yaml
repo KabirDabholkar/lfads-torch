@@ -1,0 +1,150 @@
+attr_keys:
+- psth
+- train_cond_idx
+- valid_cond_idx
+- train_decode_mask
+- valid_decode_mask
+- train_fewshot_data
+- valid_fewshot_data
+batch_keys:
+- behavior
+- fewshot_data
+batch_size: 256
+cell_clip: 5.0
+ci_enc_dim: 64
+ci_lag: 1
+co_dim: 4
+con_dim: 64
+data_paths:
+- !!python/object/apply:pathlib.PosixPath
+  - /
+  - home
+  - kabird
+  - lfads-torch-fewshot-benchmark
+  - lfads_torch
+  - extensions
+  - ..
+  - ..
+  - datasets
+  - mc_maze-20ms-val.h5
+dm_ic_enc_seq_len: 0
+dropout_rate: 0.3
+encod_data_dim: 115
+encod_seq_len: 35
+ext_input_dim: 0
+fac_dim: 100
+gen_dim: 200
+ic_dim: 64
+ic_enc_dim: 64
+ic_enc_seq_len: 0
+ic_post_var_min: 0.0001
+infer_aug_stack: !!python/object:lfads_torch.modules.augmentations.AugmentationStack
+  batch_transforms: []
+  loss_transforms: []
+kl_co_scale: 1.0e-07
+kl_ic_scale: 1.0e-07
+kl_increase_epoch: 80
+kl_start_epoch: 0
+l2_ci_enc_scale: 0.0
+l2_con_scale: 0.0
+l2_gen_scale: 0.0
+l2_ic_enc_scale: 0.0
+l2_increase_epoch: 80
+l2_start_epoch: 0
+loss_scale: 10000.0
+lr_adam_beta1: 0.9
+lr_adam_beta2: 0.999
+lr_adam_epsilon: 1.0e-08
+lr_decay: 0.95
+lr_init: 0.004
+lr_patience: 6
+lr_scheduler: false
+lr_stop: 1.0e-05
+new_num_encod_neurons: 115
+really_heldout_neuron_indices: !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - !!python/name:numpy.ndarray ''
+  - !!python/tuple
+    - 0
+  - !!binary |
+    Yg==
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 22
+  - !!python/object/apply:numpy.dtype
+    args:
+    - i8
+    - false
+    - true
+    state: !!python/tuple
+    - 3
+    - <
+    - null
+    - null
+    - null
+    - -1
+    - -1
+    - 0
+  - false
+  - !!binary |
+    AAAAAAAAAAABAAAAAAAAAAIAAAAAAAAAAwAAAAAAAAAEAAAAAAAAAAUAAAAAAAAABgAAAAAAAAAH
+    AAAAAAAAAAgAAAAAAAAACQAAAAAAAAAKAAAAAAAAAAsAAAAAAAAADAAAAAAAAAANAAAAAAAAAA4A
+    AAAAAAAADwAAAAAAAAAQAAAAAAAAABEAAAAAAAAAEgAAAAAAAAATAAAAAAAAABQAAAAAAAAAFQAA
+    AAAAAAA=
+recon_reduce_mean: true
+recon_seq_len: 45
+reshuffle_tv_ratio: null
+reshuffle_tv_seed: null
+sv_rate: 0.0
+sv_seed: 0
+train_aug_stack: !!python/object:lfads_torch.modules.augmentations.AugmentationStack
+  batch_transforms:
+  - &id003 !!python/object:lfads_torch.modules.augmentations.CoordinatedDropout
+    cd_input_dist: !!python/object:torch.distributions.bernoulli.Bernoulli
+      _batch_shape: !!python/object/apply:torch.Size
+      - !!python/tuple []
+      _event_shape: !!python/object/apply:torch.Size
+      - !!python/tuple []
+      _param: &id001 !!python/object/apply:torch._utils._rebuild_tensor_v2
+      - !!python/object/apply:torch.storage._load_from_bytes
+        - !!binary |
+          gAKKCmz8nEb5IGqoUBkugAJN6QMugAJ9cQAoWBAAAABwcm90b2NvbF92ZXJzaW9ucQFN6QNYDQAA
+          AGxpdHRsZV9lbmRpYW5xAohYCgAAAHR5cGVfc2l6ZXNxA31xBChYBQAAAHNob3J0cQVLAlgDAAAA
+          aW50cQZLBFgEAAAAbG9uZ3EHSwR1dS6AAihYBwAAAHN0b3JhZ2VxAGN0b3JjaApGbG9hdFN0b3Jh
+          Z2UKcQFYCQAAADIxOTczNTg3MnECWAMAAABjcHVxA0sBTnRxBFEugAJdcQBYCQAAADIxOTczNTg3
+          MnEBYS4BAAAAAAAAADMzMz8=
+      - 0
+      - !!python/tuple []
+      - !!python/tuple []
+      - false
+      - !!python/object/apply:collections.OrderedDict
+        - []
+      probs: *id001
+    cd_pass_dist: !!python/object:torch.distributions.bernoulli.Bernoulli
+      _batch_shape: !!python/object/apply:torch.Size
+      - !!python/tuple []
+      _event_shape: !!python/object/apply:torch.Size
+      - !!python/tuple []
+      _param: &id002 !!python/object/apply:torch._utils._rebuild_tensor_v2
+      - !!python/object/apply:torch.storage._load_from_bytes
+        - !!binary |
+          gAKKCmz8nEb5IGqoUBkugAJN6QMugAJ9cQAoWBAAAABwcm90b2NvbF92ZXJzaW9ucQFN6QNYDQAA
+          AGxpdHRsZV9lbmRpYW5xAohYCgAAAHR5cGVfc2l6ZXNxA31xBChYBQAAAHNob3J0cQVLAlgDAAAA
+          aW50cQZLBFgEAAAAbG9uZ3EHSwR1dS6AAihYBwAAAHN0b3JhZ2VxAGN0b3JjaApGbG9hdFN0b3Jh
+          Z2UKcQFYCQAAADE3NDQwMTI5NnECWAMAAABjcHVxA0sBTnRxBFEugAJdcQBYCQAAADE3NDQwMTI5
+          NnEBYS4BAAAAAAAAAAAAAAA=
+      - 0
+      - !!python/tuple []
+      - !!python/tuple []
+      - false
+      - !!python/object/apply:collections.OrderedDict
+        - []
+      probs: *id002
+    cd_rate: 0.3
+    grad_masks: []
+    ic_enc_seq_len: 0
+  loss_transforms:
+  - *id003
+variational: true
+weight_decay: 0.0

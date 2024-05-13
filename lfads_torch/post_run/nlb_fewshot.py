@@ -14,6 +14,8 @@ import os
 import h5py, json
 from pathlib import Path
 
+import matplotlib.pyplot as plt
+
 data_path_base = '/home/kabird/datasets'
 DATA_DIR = Path(f"{data_path_base}/")
 
@@ -44,18 +46,49 @@ def run_model_on_numpy(model,spikes_heldin,batch_size=8):
         encod_data_torch = torch.tensor(encod_data).to(model.device)
         n_samps, n_steps, _ = encod_data.shape
         ext_input = torch.zeros(n_samps, n_steps, 0).to(model.device)
-        batch = SessionBatch(**{
+        truth = torch.full((n_samps, 0, 0), float("nan"))
+        sv_mask = torch.ones(n_samps, 0, 0)
+        batch = {0:(SessionBatch(**{
             "encod_data": encod_data_torch,
             "recon_data": None,  # Fill with appropriate data if available
             "ext_input": ext_input,   # Fill with appropriate data if available
-            "truth": None,       # Fill with appropriate data if available
-            "sv_mask": None,     # Fill with appropriate data if available
-        })
+            "truth": truth,       # Fill with appropriate data if available
+            "sv_mask": sv_mask,     # Fill with appropriate data if available
+        }),)}
+        # batch = (encod_data_torch,None,ext_input,None,None)
+        # batch = SessionBatch(**batch)
         batches.append(batch)
-    outputs = [model(batch) for batch in batches]
+    # print(batches[0].items())
+    # outputs = [model(batch,sample_posteriors=False,output_means=True) for batch in batches]
+    model.eval()
+    with torch.no_grad():
+        outputs = [model.predict_step(batch,0,sample_posteriors=False) for batch in batches]
     output_params = np.concatenate([o[0].output_params.detach().cpu().numpy() for o in outputs])
     factors = np.concatenate([o[0].factors.detach().cpu().numpy() for o in outputs])
+
+    # from sklearn.decomposition import PCA
+    # n_components = 2
+    # P = PCA(n_components=n_components)
+    # factors_proj = P.fit_transform(factors.reshape(-1,factors.shape[-1])).reshape(*factors.shape[0:2],n_components)
+    # fig,ax = plt.subplots()
+    # for i in range(10):
+    #     ax.plot(factors_proj[i,:,0],factors_proj[i,:,1])
+    # fig.savefig('/home/kabird/lfads-torch-fewshot-benchmark/plots/PCA_nlb_fewshot.png',dpi=300)
+    # output_params = np.exp(output_params)
+    # print('run model on numpy trials:',output_params.shape[0])
+    # model.on_train_epoch_start()
+    # model.on_validation_epoch_start()
+    # outputs = [model._shared_step(batch,0,'train',return_output=True) for batch in batches]
+    # #outputs = [model(batch) for batch in batches]
+    # output_params = np.concatenate([o[0].output_params.detach().cpu().numpy() for o in outputs])[...,0]
+    # factors = np.concatenate([o[0].factors.detach().cpu().numpy() for o in outputs])
+    # output_params = np.exp(output_params)
     return output_params,factors
+
+    # outputs = [model.predict_step(batch,0) for batch in batches]
+    # output_params = np.concatenate([o[0].output_params.detach().cpu().numpy() for o in outputs])
+    # factors = np.concatenate([o[0].factors.detach().cpu().numpy() for o in outputs])
+    # return output_params,factors
 
 def run_nlb_fewshot(model,variant='dmfc_rsg'):
     target_path = osp.join(DATA_DIR, f"{variant}_target.h5")
@@ -151,5 +184,10 @@ def run_nlb_fewshot(model,variant='dmfc_rsg'):
     # D.to_csv()
     return df
 
+class FakeModel():
+    device='cpu'
+
+
 if __name__=="__main__":
-    run_nlb_fewshot("")
+    A = FakeModel()
+    run_nlb_fewshot(A)
