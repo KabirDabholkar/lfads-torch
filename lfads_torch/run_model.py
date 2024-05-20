@@ -14,8 +14,9 @@ from functools import partial
 from typing import Optional
 import pickle as pkl
 from lfads_torch.post_run.nlb_fewshot import run_nlb_fewshot, run_model_on_numpy
+from nlb_tools.make_tensors import make_train_input_tensors, make_eval_input_tensors, make_eval_target_tensors, save_to_h5, h5_to_dict
 from nlb_tools.load_and_save_latents import run_nlb_evaluation_protocol, run_fewshot_given_latents
-from nlb_tools import sklearn_glm 
+from nlb_tools import sklearn_glm, torch_glm 
 import numpy as np
 import pandas as pd
 
@@ -29,10 +30,17 @@ glms_funcs = {
     # 'sklearn_glm.fit_poisson_parallel(alpha=0.0,max_iter=500)'  : partial(sklearn_glm.fit_poisson_parallel,alpha=0.0,max_iter=500),
     # 'sklearn_glm.fit_poisson_parallel(alpha=0.0,max_iter=1000)' : partial(sklearn_glm.fit_poisson_parallel,alpha=0.0,max_iter=1000),
     # 'sklearn_glm.fit_poisson_parallel(alpha=0.01,max_iter=500)'  : partial(sklearn_glm.fit_poisson_parallel,alpha=0.1,max_iter=500),
+    # 'sklearn_glm.fit_poisson_parallel(alpha=0.5,max_iter=500)'  : partial(sklearn_glm.fit_poisson_parallel,alpha=0.5,max_iter=500),
+
+    'sklearn_glm.fit_poisson_parallel(alpha=0.001,max_iter=500)'  : partial(sklearn_glm.fit_poisson_parallel,alpha=0.001,max_iter=500),
     'sklearn_glm.fit_poisson_parallel(alpha=0.01,max_iter=500)'  : partial(sklearn_glm.fit_poisson_parallel,alpha=0.01,max_iter=500),
     'sklearn_glm.fit_poisson_parallel(alpha=0.1,max_iter=500)'  : partial(sklearn_glm.fit_poisson_parallel,alpha=0.1,max_iter=500),
-    # 'sklearn_glm.fit_poisson_parallel(alpha=0.5,max_iter=500)'  : partial(sklearn_glm.fit_poisson_parallel,alpha=0.5,max_iter=500),
+
+    # 'torch_glm.fit_poisson' : torch_glm.fit_poisson,
+    # 'partial(torch_glm.fit_poisson,alpha=1e-3)' : partial(torch_glm.fit_poisson,alpha=1e-3)
 }
+
+co_bps_savelatent_threshold = 0.35
 
 def load_model(model,config_path,run_dir,trial_ids=None,load_best=True):
     if "single" not in str(config_path) and run_dir:
@@ -76,6 +84,7 @@ def run_model(
     do_post_run_analysis: bool = True,
     do_nlb_fewshot: bool = False,
     do_nlb_fewshot2: bool = False,
+    save_latent: bool = True,
     variant : str = 'mc_maze_20',
     run_dir: Optional[os.PathLike] = None,
     trial_ids: Optional[list[str]] = None,
@@ -84,6 +93,11 @@ def run_model(
     """Adds overrides to the default config, instantiates all PyTorch Lightning
     objects from config, and runs the training pipeline.
     """
+    
+    # if int(tune.get_trial_id().split('_')[1]) not in [141,69]:
+    #     return
+    
+    print('tune.get_trial_id()',tune.get_trial_id())
 
     # Compose the train config with properly formatted overrides
     config_path = Path(config_path)
@@ -279,7 +293,8 @@ def run_model(
             run_model_on_numpy_pre=wrap_run_model_on_numpy, #run_model_on_numpy,
             variant=variant,
             do_fewshot=True,
-            do_evaluation=False
+            do_evaluation=False,
+            use_rates_as_latents=False,
         )
         DFs = []
         for fit_poisson_func_name, fit_poisson_func in glms_funcs.items():
@@ -293,7 +308,18 @@ def run_model(
             DFs.append(results_df)
         result_dfs = pd.concat(DFs,axis=1).reset_index()
         result_dfs = result_dfs.loc[:, ~result_dfs.columns.duplicated()]
-        savepath = Path(tune.get_trial_dir()) / 'results_new.csv'
-        # savepath = ckpt_path.replace('.pth','_results6.csv')
+        savepath = Path(tune.get_trial_dir()) / 'results.csv'
+        # savepath = Path(tune.get_trial_dir()) / 'results_logrates-as-latents.csv'
+        # savepath = ckpt_path.replace('.pth','_results.csv')
         result_dfs.to_csv(savepath)
+
+        latents_dict = {key: value for key, value in latents_dict.items() if 'shot' not in key}
+        if (result_dfs.iloc[0]['co-bps'] > co_bps_savelatent_threshold) and save_latent:
+            savepath = Path(tune.get_trial_dir()) / 'latents.h5'
+            print('Saving latents to',savepath)
+            save_to_h5(
+                latents_dict,
+                save_path=savepath, #ckpt_path.split('.')[0]+'_latents.h5',
+                overwrite=True
+            )
         

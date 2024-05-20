@@ -35,13 +35,13 @@ CONFIG_PATH = "../configs"
 CONFIG_NAME = "comparative_config"
 # path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_maze/240316_144215_MultiFewshot'
 # path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_maze/240318_144734_MultiFewshot'
-# path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_maze/240319_085230_MultiFewshot'
+path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_maze/240319_085230_MultiFewshot'
 # path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_rtt/240328_171607_MultiFewshot'
 # path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_rtt/240329_193308_MultiFewshot'
 # path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_rtt/240329_201611_MultiFewshot'
 # path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_mc_rtt/240331_130041_MultiFewshot'
 # path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_dmfc_rsg/240402_110106_MultiFewshot' # 20 models
-path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_dmfc_rsg/240402_111015_MultiFewshot' # 200 models
+# path_to_models = '/home/kabird/lfads-torch-runs/lfads-torch-fewshot-benchmark/nlb_dmfc_rsg/240402_111015_MultiFewshot' # 200 models
 dataframe_file_name = 'latents_dataframe.pkl'
 threshold = 2e-3
 
@@ -842,10 +842,10 @@ if __name__ == '__main__':
     # convert_cross_decoding_scores_to_matlab()
     # load_and_filternan_models_with_csvs()
     
-    load_model_datas()
-    plotting_histogram()
+    # load_model_datas()
+    # plotting_histogram()
     # cross_decoding()
     # plot_cross_decoding_scores()
     # plot_kshot_and_crossdecoding()
-    # check_extremes()
+    check_extremes()
     # convert_cross_decoding_scores_to_matlab()

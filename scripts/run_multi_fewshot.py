@@ -14,13 +14,13 @@ from paths import runs_path
 
 # ----------- Dataset-wise OPTIONS dict
 options = {
-    'mc_maze_5':{
-        'DATASET_STR' : 'nlb_mc_maze',
-        'config_path' : "../configs/multi_few_shot_original_heldout_mc_maze_5.yaml",
-        'OLD_RUN_TAG' : '240318_144734_MultiFewshot',
-        'experiment_json_path'  : 'experiment_state-2024-03-18_14-47-38.json',
-        'model.dropout_rate': tune.uniform(0.0, 0.25), #narrowed down after first generation
-    },
+    # 'mc_maze_5':{
+    #     'DATASET_STR' : 'nlb_mc_maze',
+    #     'config_path' : "../configs/multi_few_shot_original_heldout_mc_maze_5.yaml",
+    #     'OLD_RUN_TAG' : '240318_144734_MultiFewshot',
+    #     'experiment_json_path'  : 'experiment_state-2024-03-18_14-47-38.json',
+    #     'model.dropout_rate': tune.uniform(0.0, 0.25), #narrowed down after first generation
+    # },
     'mc_maze_20':{
         'DATASET_STR' : 'nlb_mc_maze',
         'config_path' : "../configs/multi_few_shot_original_heldout_mc_maze.yaml",
@@ -56,7 +56,7 @@ select_options = options['mc_maze_20']
 PROJECT_STR = "lfads-torch-fewshot-benchmark"
 DATASET_STR = select_options['DATASET_STR']
 config_path = select_options['config_path']
-num_samples = 50 #200  #160 
+num_samples = 200  #200  #160 
 do_tune_run = True
 RUN_TAG = datetime.now().strftime("%y%m%d_%H%M%S") + "_MultiFewshot"
 # OLD_RUN_TAG = '231110_002643_MultiFewshot'
@@ -119,6 +119,7 @@ if do_tune_run:
             do_post_run_analysis=False,
             do_nlb_fewshot = False,
             do_nlb_fewshot2 = True,
+            save_latent = False,
             variant = 'mc_maze_20',
             run_dir = OLD_RUN_DIR,
             trial_ids = trial_ids,
